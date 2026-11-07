@@ -1,8 +1,12 @@
 # Outcome-First Agent Loop — Submission
 
 **Name:** Kuzhandayan K V · **Date:** 2026-11-08 · **Hours actually spent (be honest):** about 8 hours (Sat 7 Nov 19:45 – Sun 8 Nov 03:30 IST), building with an AI coding assistant as the brief allows ·
-**Language / storage:** Python 3.10+ (only the packages already in `requirements.txt`) / SQLite (WAL), one file
+**Language / storage:** Python 3.10+ (only the packages already in `requirements.txt`) / SQLite (WAL), one file · **Runs in:** Docker
 
+> **Run it:** `docker compose up --build` runs the tests, public_01 and public_02 end to end, and serves the live
+> supervisor view at http://localhost:8800. The grading contract `./run.sh <SIM_URL>` runs the controller in Docker
+> when Docker is available, otherwise with local Python 3.10+.
+>
 > How to run, debug and extend: [`README_CONTROLLER.md`](README_CONTROLLER.md). Requirement-by-requirement
 > status: [`TODO.md`](TODO.md). Reports: [`reports/`](reports/).
 
@@ -255,6 +259,12 @@ person → feature-code array, and the last-seen config per workflow.
 
 **Each step:** ingest pending chunks → refresh configs → poll approvals and apply approved ones → for each
 workflow run incident, caller ID, then routine planning → write metrics → `POST /sim/advance 30`.
+
+**How it is packaged:** one Docker image (`python:3.12-slim` + `requirements.txt` + `controller/`).
+`./run.sh <SIM_URL>` builds it and runs the controller against the grader's simulator (host networking on Linux).
+Locally, `docker compose up` runs the provided simulator and the controller from the same image, with the project
+folder mounted. The SQLite state lives in a Docker volume rather than the mounted folder, because SQLite's
+shared-memory (WAL) files are not reliable on Docker Desktop's file sharing on macOS (§12).
 
 **On restart:**
 
@@ -627,6 +637,7 @@ Every one of the 6 runs improved conclusion rate, pickup and engagement.
 | Pause dialling (all hour weights 0) during an incident | Stops harm immediately | The business owns whether and when to call; this is capacity in disguise. Rejected |
 | Prompt A/B tests | Prompts may hold the biggest engagement lever | One prompt per workflow; time-switchback tests are confounded by decay and incidents, and every switch needs approval and validation. Cut |
 | Postgres / Redis now | SRE already runs them | Network services to run in the grader's box. Instead: SQLite now, the same schema in Postgres in production |
+| SQLite in the mounted project folder under Docker | Files visible on the host, simple | On Docker Desktop for Mac, a database deleted and recreated while another process mapped its WAL shared-memory file crashed the reader (SIGBUS) on a run restart. Instead: state in a Docker volume (Docker's recommendation for databases); the view closes its connections after every request |
 | Chaining auto-apply PUTs to get past `max_shift` | Faster on Kestrel | Against the intent of the policy. Instead: one step per 3 sim-hours |
 
 ## 13. Known weaknesses

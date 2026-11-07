@@ -18,9 +18,9 @@ where to find the evidence.
 |---|---|---|
 | A1 | Fill in **Hours actually spent** in `SUBMISSION.md` | ✅ done: about 8 hours, AI-assisted (allowed by the brief, README line 174). Update it if you spend more time before submitting |
 | A2 | Read `SUBMISSION.md` fully and rewrite any stakeholder reply (§3) in your own words if you want | 👤 to do |
-| A3 | Push to a **private GitHub repo** and give access to the email on the form (commit history is graded; push as-is, don't squash) | 👤 to do |
+| A3 | Push to GitHub, **public** (the form asks for a publicly accessible link), commit history as-is | ✅ done 8 Nov: https://github.com/kuzhandayan/sde-assignment-2026 |
 | A4 | Verify Docker once with the real base image (`docker compose up` on the Mac) | ✅ done 8 Nov — built from `python:3.12-slim`, sim healthy, controller ran D0–D7 and exited 0 |
-| A5 | Run it once on your Mac: `docker compose up --build` (tests + public_01 + public_02 + supervisor view) | 👤 to do — about 2 minutes |
+| A5 | Run it once on your Mac: `docker compose up --build` (tests + public_01 + public_02 + supervisor view) | ✅ done 8 Nov |
 | A6 | Optional: record a ≤ 5-min walkthrough video (show `why`, the supervisor view, the crash test) | 👤 optional |
 | A7 | Check whether you submitted Round 1 — if not, the email says both rounds are needed | 👤 check |
 | A8 | Prepare for the 60-min review: be able to explain one decision live from the audit store (`python -m controller why ...`), say what breaks if a constraint changes, and defend each cut | 👤 prepare |
