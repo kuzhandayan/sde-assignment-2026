@@ -1,6 +1,6 @@
 # Outcome-First Agent Loop — Submission
 
-**Name:** Kuzhandayan K V · **Date:** 2026-11-07 · **Hours actually spent (be honest):** _fill in before submitting_ ·
+**Name:** Kuzhandayan K V · **Date:** 2026-11-08 · **Hours actually spent (be honest):** about 8 hours (Sat 7 Nov 19:45 – Sun 8 Nov 03:30 IST), building with an AI coding assistant as the brief allows ·
 **Language / storage:** Python 3.10+ (only the packages already in `requirements.txt`) / SQLite (WAL), one file
 
 > How to run, debug and extend: [`README_CONTROLLER.md`](README_CONTROLLER.md). Requirement-by-requirement
@@ -57,7 +57,7 @@
 | C8 | Hallucination incident response | **Built** | Regulated clients; fixed in 5h on public_02 | Pause-a-cohort lever if the business allowed it |
 | C9 | Governance client | **Built** | Floor requirement; batching, approver hours, TTL, apply window, stale/expired re-plan, auto-apply | Per-approver fatigue model across workflows |
 | C10 | Honest impact, affected leads, dry runs | **Built** | Product: the queue is ranked by impact | Back-test the impact score against realised lift |
-| C11 | Consolidated supervisor view | **Partial** | One read-only page per tenant + JSON; no actions from the page | Approve/reject buttons wired to the client's system; weekly digest email |
+| C11 | Consolidated supervisor view | **Partial** | One live page per tenant (+ JSON): what's tested, what's winning, what we want from you, what changed, caller IDs, incidents; refreshes every 10 s and follows the run in progress. Read-only: no actions from the page | Approve/reject buttons wired to the client's system; weekly digest email |
 | C12 | Queryable audit store | **Built** | Floor requirement; `why` and `heard` from our own store | — |
 | C13 | Crash recovery, demonstrated | **Built** | SRE non-negotiable; `scripts/crash_test.py` | — |
 | C14 | Observability of the loop | **Partial** | `metrics` + `alerts` tables, `/api/loop`, page vs ticket | Prometheus exporter / dashboards |

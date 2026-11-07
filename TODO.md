@@ -16,7 +16,7 @@ where to find the evidence.
 
 | # | Task | Status |
 |---|---|---|
-| A1 | Fill in **Hours actually spent** at the top of `SUBMISSION.md` (be honest — they ask) | 👤 to do |
+| A1 | Fill in **Hours actually spent** in `SUBMISSION.md` | ✅ done: about 8 hours, AI-assisted (allowed by the brief, README line 174). Update it if you spend more time before submitting |
 | A2 | Read `SUBMISSION.md` fully and rewrite any stakeholder reply (§3) in your own words if you want | 👤 to do |
 | A3 | Push to a **private GitHub repo** and give access to the email on the form (commit history is graded; push as-is, don't squash) | 👤 to do |
 | A4 | Verify Docker once with the real base image (`docker compose up` on the Mac) | ✅ done 8 Nov — built from `python:3.12-slim`, sim healthy, controller ran D0–D7 and exited 0 |
@@ -64,7 +64,7 @@ where to find the evidence.
 | C8 | Hallucination incident: detect → LLM → validate → propose → verify | ✅ | public_02: fixed in 300 min, verified |
 | C9 | Governance client (lifecycle, batching, hours, expiry/lapse, stale re-proposal, auto-apply) | ✅ | `governance.py`, `planner.py` |
 | C10 | Honest impact, affected leads, dry runs | ✅ | defined in SUBMISSION §6 |
-| C11 | Consolidated supervisor view | 🟡 | `python -m controller view` (read-only; no approve buttons) |
+| C11 | Consolidated supervisor view | 🟡 | live page per tenant at http://localhost:8800 (auto-refresh); read-only, no approve buttons |
 | C12 | Queryable decision/audit store | ✅ | `why`, `heard`, SQL |
 | C13 | Crash recovery demonstrated | ✅ | `scripts/crash_test.py`, `reports/crash_recovery.md` |
 | C14 | Observability of the loop | 🟡 | `metrics`, `alerts`, `/api/loop` (no Prometheus) |
@@ -114,5 +114,6 @@ where to find the evidence.
 | H4 | Docker | ✅ | one image (`Dockerfile`); `docker compose up` runs tests + public_01 + public_02 and serves the view; verified with the real `python:3.12-slim` on macOS (A4) |
 | H6 | Edge cases end to end | ✅ | `scripts/edge_cases.py` 9/9 (`reports/edge_cases.md`) |
 | H7 | Full from-scratch verification | ✅ | fresh clone, clean environment, `--no-cache` build: every test, scenario, audit query and Docker path passed (SUBMISSION.md §9) |
+| H9 | Live supervisor view and hot reload | ✅ | `docker compose up` shows http://localhost:8800 from the start (refreshes every 10 s, follows the run in progress); saving code in `controller/` restarts the run with the new code |
 | H8 | One command, Docker only (no local Python/venv) | ✅ | `docker compose up --build`; `docker compose run --rm dev <cmd>` for single commands; `./run.sh` uses Docker when available, else Python 3.10+; runs never write to `reports/` |
 | H5 | Authentication | ✅ (by decision) | Not required by the brief. View is read-only, localhost-bound, optional `VIEW_TOKEN` bearer token; production sits behind SSO/gateway |
