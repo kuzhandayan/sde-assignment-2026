@@ -9,18 +9,21 @@ is [`TODO.md`](TODO.md).
 You only need **Docker**. Docker brings Python and every package, so there's no venv or local Python setup.
 
 ```bash
-# run a whole scenario: simulator + controller (Ctrl+C after "controller-1 exited with code 0")
-SCENARIO=public_02_incidents docker compose up --build
-docker compose down
-
-# everything else runs in the `dev` container (same image, project folder mounted)
-docker compose run --rm dev                                       # unit tests
-docker compose run --rm dev scripts/run_scenario.sh scenarios/public_02_incidents.yaml public_02 8702
-                                                                  # sim + controller + grade, live progress
+docker compose up --build
 ```
 
-Your own runs write to `runs/`, `state/` and `logs/` (all git-ignored). `reports/` holds the committed evidence
-and is never overwritten by these commands.
+That one command:
+
+1. runs the unit tests;
+2. runs **public_01** and **public_02** end to end (simulator + controller + grade against the no-op baseline),
+   with live progress and a result table for each;
+3. then keeps the supervisor view open at **http://localhost:8800**.
+
+It takes about 2 minutes. Press **Ctrl+C** to stop, then run `docker compose down`. To run other scenarios:
+`SCENARIOS="public_03_load" docker compose up`.
+
+Your runs write to `runs/`, `state/` and `logs/` (all git-ignored). `reports/` holds the committed evidence and is
+never overwritten.
 
 The assignment contract is `./run.sh <SIM_URL>`. It runs the controller in Docker when Docker is available and
 falls back to local Python 3.10+ (`pip install -r requirements.txt`) on a machine without Docker.
@@ -43,13 +46,14 @@ different world. Reports regenerated on another machine can differ in detail fro
 
 ## 2. Look at what it did
 
+After `docker compose up`, open http://localhost:8800 for the supervisor view. For the audit questions, use a
+second terminal while it's running or after it stops:
+
 ```bash
 # why did workflow X change at time T, who approved it, what happened next
 docker compose run --rm dev python -m controller why --db state/public_02.db --workflow ks_cancel --at "D3 16:30"
 # what a customer heard on each call, and why that variant was live (IRDAI question)
 docker compose run --rm dev python -m controller heard --db state/public_02.db --person ks_cancel:p0001234
-# supervisor view: one screen per tenant + loop health JSON   -> http://127.0.0.1:8800/tenant/kestrel_finance
-docker compose run --rm --service-ports dev python -m controller view --db state/public_02.db --host 0.0.0.0
 ```
 
 Everything can also be queried directly. The `decisions` table is the plain-language audit log:
@@ -126,7 +130,7 @@ does three things:
 ## 5. Test
 
 ```bash
-docker compose run --rm dev                                        # 13 controller unit tests + simulator tests (≈3 s)
+docker compose up --build                                          # tests + public_01 + public_02 (≈2 min)
 docker compose run --rm dev python scripts/crash_test.py --kills 4 # kill/restart test against a live simulator (≈2 min)
 docker compose run --rm dev python scripts/edge_cases.py           # 9 end-to-end edge cases (≈3 min)
 docker compose run --rm dev python scripts/eval_seeds.py --seeds 3 # robustness across random seeds (≈6 min)

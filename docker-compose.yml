@@ -1,24 +1,19 @@
-# docker compose up --build                  run a scenario: simulator + controller  (SCENARIO=public_02_incidents ...)
-# docker compose run --rm dev <command>      tests, scripts and audit commands, e.g. python -m pytest -q tests
+# docker compose up --build              tests + public_01 + public_02 end to end, then the view on http://localhost:8800
+# SCENARIOS="public_03_load" docker compose up     any scenarios you like
+# docker compose run --rm dev <command>  run one command in the same image, e.g. scripts/crash_test.py
 x-app: &app
   build: {context: ., args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}}
   working_dir: /repo
   volumes: [".:/repo"]
 
 services:
-  sim:
+  app:
     <<: *app
-    entrypoint: [python, -m, sim, serve, --host, 0.0.0.0, --port, "8700", --force,
-                 --scenario, "scenarios/${SCENARIO:-public_01_dev}.yaml", --run-dir, "runs/docker_${SCENARIO:-public_01_dev}"]
-    healthcheck: {test: [CMD, python, -c, "import urllib.request as u; u.urlopen('http://127.0.0.1:8700/health')"], interval: 3s, retries: 60}
-  controller:
-    <<: *app
-    # every `up` starts a new simulator world, so it gets a new state DB
-    entrypoint: [bash, -c, 'rm -f state/docker.db*; exec python -m controller run --url http://sim:8700 --db state/docker.db']
-    depends_on: {sim: {condition: service_healthy}}
+    entrypoint: [scripts/demo.sh]
+    environment: [SCENARIOS]
+    ports: ["8800:8800"]
   dev:
     <<: *app
     entrypoint: [bash, -c, 'exec "$$@"', --]
     command: [python, -m, pytest, -q, tests]
-    ports: ["8800:8800"]
     profiles: [dev]

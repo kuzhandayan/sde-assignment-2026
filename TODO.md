@@ -20,7 +20,7 @@ where to find the evidence.
 | A2 | Read `SUBMISSION.md` fully and rewrite any stakeholder reply (§3) in your own words if you want | 👤 to do |
 | A3 | Push to a **private GitHub repo** and give access to the email on the form (commit history is graded; push as-is, don't squash) | 👤 to do |
 | A4 | Verify Docker once with the real base image (`docker compose up` on the Mac) | ✅ done 8 Nov — built from `python:3.12-slim`, sim healthy, controller ran D0–D7 and exited 0 |
-| A5 | Run it once on your Mac with Docker: `docker compose run --rm dev` (tests) and `SCENARIO=public_02_incidents docker compose up --build` | ✅ done 8 Nov |
+| A5 | Run it once on your Mac: `docker compose up --build` (tests + public_01 + public_02 + supervisor view) | 👤 to do — about 2 minutes |
 | A6 | Optional: record a ≤ 5-min walkthrough video (show `why`, the supervisor view, the crash test) | 👤 optional |
 | A7 | Check whether you submitted Round 1 — if not, the email says both rounds are needed | 👤 check |
 | A8 | Prepare for the 60-min review: be able to explain one decision live from the audit store (`python -m controller why ...`), say what breaks if a constraint changes, and defend each cut | 👤 prepare |
@@ -111,8 +111,8 @@ where to find the evidence.
 | H1 | Unit tests where they matter | ✅ | `tests/test_controller.py` (13) + simulator tests (6) — all pass |
 | H2 | Docs a new engineer can run/debug/extend from | ✅ | `README_CONTROLLER.md` (run, inspect, runbook, extend) |
 | H3 | Robustness across seeds (not tuned to one run) | ✅ | `scripts/eval_seeds.py`, `reports/seed_robustness.md` |
-| H4 | Docker | ✅ | one image for simulator + controller (`Dockerfile`), 3-service `docker-compose.yml`; `docker compose up` verified with the real `python:3.12-slim` on macOS (A4); `run.sh` in Docker and a container kill/restart verified |
+| H4 | Docker | ✅ | one image (`Dockerfile`); `docker compose up` runs tests + public_01 + public_02 and serves the view; verified with the real `python:3.12-slim` on macOS (A4) |
 | H6 | Edge cases end to end | ✅ | `scripts/edge_cases.py` 9/9 (`reports/edge_cases.md`) |
 | H7 | Full from-scratch verification | ✅ | fresh clone, clean environment, `--no-cache` build: every test, scenario, audit query and Docker path passed (SUBMISSION.md §9) |
-| H8 | Runs with Docker only (no local Python/venv) | ✅ | `docker compose up` for scenarios; `docker compose run --rm dev ...` for tests, scripts, audit and the view; `./run.sh` uses Docker when available, else Python 3.10+; own runs write to git-ignored `runs/`, never to `reports/` |
+| H8 | One command, Docker only (no local Python/venv) | ✅ | `docker compose up --build`; `docker compose run --rm dev <cmd>` for single commands; `./run.sh` uses Docker when available, else Python 3.10+; runs never write to `reports/` |
 | H5 | Authentication | ✅ (by decision) | Not required by the brief. View is read-only, localhost-bound, optional `VIEW_TOKEN` bearer token; production sits behind SSO/gateway |
