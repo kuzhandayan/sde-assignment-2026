@@ -1,4 +1,4 @@
-# Controller image. The simulator is NOT baked in: the grader runs its own copy and passes its URL.
+# Controller image. The simulator is not included: the grader runs its own and passes its URL.
 ARG BASE_IMAGE=python:3.12-slim
 FROM ${BASE_IMAGE}
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONHASHSEED=0

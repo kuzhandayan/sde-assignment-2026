@@ -1,20 +1,4 @@
-"""Hallucination incident response (C8): detect -> pick fix -> validate -> propose with evidence -> verify.
-
-Detection is population-based: over the last HAL_WINDOW_MIN of connected calls on the live prompt, the
-automated QA flag rate must be (a) above max(2x baseline, baseline + 1.5pp) and (b) significant against the
-baseline with an exact one-sided binomial test at p < 1e-4, on at least 200 connected calls. The baseline is the
-flag rate measured in history, which already includes the detector's false-positive rate.
-
-Fix selection, cheapest first ("the best compute is no compute"):
-1. a prompt this workflow has already run safely (live flag rate near baseline on >= 800 connected calls),
-   preferring the one that was live just before the bad one -- we also know its engagement;
-2. only if there is none, ask the LLM for alternatives (3 credits) and validate the top two.
-Every candidate is validated (the approver requires it) and must clear the policy minimum + a margin.
-After apply we verify on live traffic and check engagement did not fall (stakeholders/04: a 'safe' prompt
-that reads the script verbatim is not a fix).
-
-The LLM proposes. It never decides: validation and live flag rates decide.
-"""
+"""Hallucination incident response (C8): detect -> pick fix -> validate -> propose with evidence -> verify."""
 from __future__ import annotations
 
 import json
@@ -52,8 +36,7 @@ def _close(ctx, iid, d, why):
 
 
 def detect(ctx, wf: str, live_prompt: str) -> dict | None:
-    """Two windows: the last 4h, and everything since the live prompt went live (a known change point, capped
-    at 24h). The second catches a moderately worse prompt within hours instead of a day."""
+    """Two windows: the last 4h, and everything since the live prompt went live (a known change point, capped at..."""
     b = baseline(ctx, wf)
     since = ctx.prompt_since(wf)
     windows = [max(ctx.now - S.HAL_WINDOW_MIN, since)]

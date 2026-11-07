@@ -1,17 +1,4 @@
-"""Planner: turns policy outputs into ONE batched proposal per workflow and picks the channel.
-
-Every step, per workflow, in priority order:
-  A. hallucination incident  -> urgent approval request (prompt changes are never auto-appliable)
-  B. caller ID went bad      -> auto-apply now if policy allows (within max_shift, repeated each step until
-                                done), else an urgent approval with only that change
-  C. routine                 -> one desired config from all components, then
-                                - the policy-permitted part via auto-apply (only when no approval is in flight,
-                                  so we never make a pending request stale), at most every 3 sim-hours, never
-                                  on a dim a supervisor touched ('sticky');
-                                - everything else as one batched approval request, timed inside the approver's
-                                  hours, spaced >= 6h, with one request per 24h kept free for incidents.
-Dims a supervisor edited in the last 24h are copied from the live config, i.e. left exactly as they set them.
-"""
+"""Planner: turns policy outputs into ONE batched proposal per workflow and picks the channel."""
 from __future__ import annotations
 
 import copy
@@ -223,8 +210,7 @@ class Planner:
         info = {"summary": [], "why": [], "summary_by_dim": {}, "why_by_dim": {}, "evidence_by_dim": {},
                 "dry_run": {}, "evidence": {}, "impact_parts": {}}
         reg_ids = {r[0] for r in ctx.store.q("SELECT cohort_id FROM cohorts WHERE workflow_id=?", (wf,))}
-        # welcome/voice experiments run everywhere: on engagement-primary workflows they ARE the primary KPI,
-        # on pickup-primary ones engagement is the guardrail and call-time gains put pressure on it
+        # experiments run on every workflow (engagement is the KPI or the guardrail)
         engagement_primary = True
 
         # ---- 1. cohorts (+ segment discovery)

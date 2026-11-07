@@ -1,8 +1,4 @@
-"""Audit queries (C12), answered only from the controller's own store.
-
-  why(db, wf, "D3 14:00")   -> which change was live / happened around then, why, who approved, what happened next
-  heard(db, person_id)      -> every connected call a customer had: what they heard, and why that variant was live
-"""
+"""Audit queries (C12), answered only from the controller's own store."""
 from __future__ import annotations
 
 import json

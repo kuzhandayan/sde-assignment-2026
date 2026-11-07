@@ -1,10 +1,4 @@
-"""Evaluate the controller across random seeds of the public scenarios (robustness, not tuning).
-
-Only the scenario's `seed` is changed (a temporary copy under runs/eval/). The controller still only talks to
-the simulator over HTTP. Prints one line per run and the mean per scenario.
-
-    python scripts/eval_seeds.py --seeds 3 --scenarios public_01_dev public_02_incidents
-"""
+"""Evaluate the controller across random seeds of the public scenarios (robustness, not tuning)."""
 import argparse
 import json
 import re

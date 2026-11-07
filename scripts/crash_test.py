@@ -1,16 +1,4 @@
-"""Crash-recovery test (C13). Kills the controller at injected points AND at random moments, restarts it on
-the same SQLite file each time, and checks the run finishes correctly.
-
-    python scripts/crash_test.py --scenario scenarios/public_02_incidents.yaml --kills 4 --out reports/crash_recovery.md
-
-Checks (the test may read the simulator's run dir; the controller never does):
-  1. scenario finished; controller exited 0 on its final start
-  2. every approval the simulator saw maps to exactly one proposal row in our store (none lost, none duplicated)
-  3. no approval applied twice; no apply conflicts; no lapsed approvals
-  4. every controller config version in the simulator's history is 'applied' in our store
-  5. ingestion exactly-once: events counted in our store == events the simulator emitted
-  6. connected-call aggregates equal a recount from the raw chunk files
-"""
+"""Crash-recovery test (C13)."""
 import argparse
 import json
 import os
@@ -69,14 +57,12 @@ def main():
                 p.send_signal(signal.SIGKILL)
                 out, _ = p.communicate()
                 kills_left -= 1
-                st = json.loads(subprocess.run(["curl", "-s", f"{url}/sim/state"], capture_output=True,
-                                               text=True).stdout)
+                st = __import__("httpx").get(f"{url}/sim/state", timeout=30).json()
                 log.append(f"start {starts}: SIGKILL after {time.time() - t0:.1f}s wall, sim at {st['ts']}")
                 continue
             inj = [l for l in out.splitlines() if "fault-injection" in l]
             if p.returncode == 137 and inj:
-                st = json.loads(subprocess.run(["curl", "-s", f"{url}/sim/state"], capture_output=True,
-                                               text=True).stdout)
+                st = __import__("httpx").get(f"{url}/sim/state", timeout=30).json()
                 log.append(f"start {starts}: {inj[-1].strip()} (sim at {st['ts']})")
                 continue
             log.append(f"start {starts}: exited {p.returncode} after {time.time() - t0:.1f}s")

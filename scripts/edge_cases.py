@@ -1,18 +1,4 @@
-"""End-to-end edge cases against a real simulator. Each case starts from nothing (fresh run dir, fresh DB).
-
-    python scripts/edge_cases.py --out reports/edge_cases.md
-
-Cases:
-  1. controller started BEFORE the simulator is up        -> waits, then completes
-  2. simulator never comes up / wrong URL                  -> exits non-zero with a clear message, no hang
-  3. started mid-scenario (someone already advanced to D1) -> ingests everything, completes
-  4. started after the scenario finished                   -> ingests, exits 0, sends nothing
-  5. restarted on its own DB after finishing               -> exits 0, no new proposals, no duplicate events
-  6. DB from a different simulator run                     -> refuses to start (no mixing of worlds)
-  7. second controller on the same DB                      -> refused while the first runs
-  8. hallucination incident with too few credits           -> no crash, pages, run completes, 0 credits overspent
-  9. simulator killed mid-run, then a new one started      -> controller on the old DB refuses the new world
-"""
+"""End-to-end edge cases against a real simulator."""
 import argparse
 import json
 import os

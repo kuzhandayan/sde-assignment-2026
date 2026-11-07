@@ -1,5 +1,4 @@
-"""Read models over the aggregates. Every policy reads evidence through here, so 'what counts as evidence' is
-defined once: only calls that actually happened, with the variant they actually got (stakeholders/05)."""
+"""Read models over the aggregates."""
 from __future__ import annotations
 
 from collections import defaultdict
@@ -28,13 +27,7 @@ class Evidence:
     # ------------------------------------------------------------------ engagement by arm
     def arm_stats(self, wf: str, dim: str, today: int, half_life: float, codes: set | None = None,
                   since_day: int | None = None, until_day: int | None = None, contrast_only: bool = True) -> dict:
-        """Post-stratified engagement per arm of `dim`.
-
-        Strata = (day, config version, config cohort). Within a stratum every arm was assigned at random to the
-        same population, so per-stratum arm rates are unbiased; combining strata with weights N_s x decay keeps
-        populations aligned across arms even when allocations changed over time (no Simpson's paradox).
-        Returns {arm: {"n": discounted connected, "raw_n", "raw_y", "rate"}}.
-        """
+        """Post-stratified engagement per arm of `dim`."""
         rows = self.load_eng(wf, since_day if since_day is not None else today - 10,
                              until_day if until_day is not None else 10 ** 6)
         return arm_stats_from(rows, dim, today, half_life, codes, contrast_only)
@@ -96,8 +89,7 @@ class Evidence:
 
     # ------------------------------------------------------------------ leads
     def active_leads_by_code(self, wf: str, today: int, cadence_days: int) -> dict:
-        """Leads still in a running campaign and not concluded, by feature code (an upper bound: leads whose
-        attempts are exhausted for the day are still counted)."""
+        """Leads still in a running campaign and not concluded, by feature code (an upper bound: leads whose attempts..."""
         rows = self.store.q("SELECT code_id, SUM(uploaded - concluded) FROM campaign_leads WHERE workflow_id=? "
                             "AND cday > ? GROUP BY code_id", (wf, today - cadence_days))
         return {c: max(int(n), 0) for c, n in rows}

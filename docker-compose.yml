@@ -1,9 +1,13 @@
-# Local end-to-end run in Docker:  SCENARIO=public_02_incidents docker compose up --build
-# Then:  docker compose run --rm controller why --db /app/state/controller.db --workflow ks_cancel --at "D4 18:00"
-#        open http://127.0.0.1:8800 (supervisor view)
+# Run a scenario:   SCENARIO=public_02_incidents docker compose up --build sim controller  (Ctrl+C after "exited with code 0")
+# Supervisor view:  docker compose --profile view up view                                 (http://127.0.0.1:8800)
+# Anything else:    docker compose run --rm dev <command>     e.g. python -m pytest -q tests
+x-build: &build
+  context: .
+  args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}
+
 services:
   sim:
-    build: {context: ., dockerfile: Dockerfile.sim, args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}}
+    build: {<<: *build, dockerfile: Dockerfile.sim}
     command: ["--scenario", "scenarios/${SCENARIO:-public_01_dev}.yaml", "--run-dir", "/app/runs/mine"]
     volumes: ["./runs/docker_${SCENARIO:-public_01_dev}:/app/runs"]
     ports: ["8700:8700"]
@@ -12,14 +16,20 @@ services:
       interval: 5s
       retries: 60
   controller:
-    build: {context: ., args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}}
+    build: *build
     command: ["run", "--url", "http://sim:8700", "--db", "/app/state/controller.db"]
     volumes: ["./state/docker_${SCENARIO:-public_01_dev}:/app/state"]
     depends_on: {sim: {condition: service_healthy}}
   view:
-    build: {context: ., args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}}
+    build: *build
     command: ["view", "--db", "/app/state/controller.db", "--host", "0.0.0.0", "--port", "8800"]
     volumes: ["./state/docker_${SCENARIO:-public_01_dev}:/app/state:ro"]
     ports: ["8800:8800"]
-    depends_on: [controller]
     profiles: ["view"]
+  dev:   # the repo mounted into the controller image: tests, scripts and audit commands without a local Python
+    build: *build
+    entrypoint: ["bash", "-c", "exec \"$$@\"", "--"]
+    command: ["python", "-m", "pytest", "-q", "tests"]
+    working_dir: /repo
+    volumes: [".:/repo"]
+    profiles: ["dev"]

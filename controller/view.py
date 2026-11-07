@@ -1,16 +1,4 @@
-"""Consolidated supervisor view (C11) and loop health (C14). One screen per tenant, not fifty alerts.
-
-  python -m controller view --db state/controller.db       # http://127.0.0.1:8800
-  GET /                         tenants
-  GET /tenant/{tenant_id}       the one screen: being tested, winning, wanted from you, changed today, alerts
-  GET /api/tenant/{tenant_id}   same as JSON
-  GET /api/loop                 ingest throughput, decision lag, credits, pending approvals, alerts
-  GET /api/why?workflow=..&at=D3%2014:00   the audit answer
-
-Read-only (SQLite opened with mode=ro). Bound to 127.0.0.1 by default. If VIEW_TOKEN is set, every request
-must send `Authorization: Bearer $VIEW_TOKEN`. In production this sits behind the platform's SSO/gateway; we
-don't build our own auth.
-"""
+"""Consolidated supervisor view (C11) and loop health (C14)."""
 from __future__ import annotations
 
 import html

@@ -1,11 +1,4 @@
-"""CLI.
-
-  python -m controller run   --url http://127.0.0.1:8700 --db state/controller.db
-  python -m controller why   --db state/controller.db --workflow nw_renewal --at "D3 14:00"
-  python -m controller heard --db state/controller.db --person nw_renewal:p0001234 [--day 3]
-  python -m controller view  --db state/controller.db [--port 8800]      # supervisor view (HTML + JSON)
-  python -m controller report --db state/controller.db --out reports/supervisor_public_01.md
-"""
+"""CLI."""
 import argparse
 import os
 import sys
@@ -36,8 +29,7 @@ def main(argv=None):
     rp.add_argument("--out")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        # Reproducible runs: string hashing (set/dict iteration order) must not vary between processes,
-        # otherwise tiny rounding differences in allocations change later decisions.
+        # pin hashing so two runs of the same scenario are identical
         if os.environ.get("PYTHONHASHSEED") != "0":
             os.environ["PYTHONHASHSEED"] = "0"
             os.execv(sys.executable, [sys.executable, "-m", "controller", *(argv or sys.argv[1:])])

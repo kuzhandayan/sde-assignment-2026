@@ -7,6 +7,7 @@ SCEN="$1"; NAME="$2"; PORT="${3:-8700}"
 cd "$(dirname "$0")/.."
 mkdir -p reports state logs
 say() { echo "[$(date +%H:%M:%S)] $*"; }
+up() { python3 -c "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:$PORT/health', timeout=2)" 2>/dev/null; }
 fail() { say "FAILED: $*"; exit 1; }
 
 if [ ! -d "runs/base_$NAME" ]; then
@@ -16,7 +17,7 @@ if [ ! -d "runs/base_$NAME" ]; then
 fi
 rm -f "state/$NAME.db" "state/$NAME.db-wal" "state/$NAME.db-shm" "state/$NAME.db.lock"
 
-if curl -s "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+if up; then
   fail "port $PORT is already in use (an old simulator still running?). Stop it: pkill -f 'sim serve'"
 fi
 say "simulator: starting $SCEN on port $PORT (log: logs/sim_$NAME.log)"
@@ -24,7 +25,7 @@ python -m sim serve --scenario "$SCEN" --run-dir "runs/mine_$NAME" --force --por
 SIM_PID=$!
 trap 'kill $SIM_PID 2>/dev/null || true' EXIT
 for i in $(seq 1 240); do
-  curl -s "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && break
+  up && break
   if ! kill -0 $SIM_PID 2>/dev/null; then
     echo "---- last lines of logs/sim_$NAME.log ----"; tail -25 "logs/sim_$NAME.log"
     fail "simulator crashed while starting (see above)"
@@ -32,11 +33,11 @@ for i in $(seq 1 240); do
   [ $((i % 5)) = 0 ] && say "simulator: still generating the world... (${i}s)"
   sleep 1
 done
-curl -s "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 || fail "simulator did not come up in 240 s"
+up || fail "simulator did not come up in 240 s"
 say "simulator: ready"
 
 say "controller: running (one line per simulated day; log: logs/controller_$NAME.log)"
-CONTROLLER_WAIT_S=60 CONTROLLER_DB="state/$NAME.db" ./run.sh "http://127.0.0.1:$PORT" 2>&1 \
+CONTROLLER_WAIT_S=60 CONTROLLER_DB="state/$NAME.db" USE_DOCKER=${USE_DOCKER:-0} ./run.sh "http://127.0.0.1:$PORT" 2>&1 \
   | tee "logs/controller_$NAME.log" \
   | while IFS= read -r line; do
       case "$line" in

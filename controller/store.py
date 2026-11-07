@@ -1,9 +1,4 @@
-"""SQLite store: the controller's only state. Kill the process at any point; everything needed to resume is here.
-
-Why SQLite: no new server to operate (stakeholders/03). WAL mode + one transaction per unit of work means a
-kill -9 leaves either the whole unit or none of it. The schema is plain SQL and ports to the Postgres the
-platform already runs (see SUBMISSION.md section 4).
-"""
+"""SQLite store: the controller's only state."""
 from __future__ import annotations
 
 import contextlib

@@ -1,14 +1,4 @@
-"""Event ingestion (C1): chunk-by-chunk, idempotent, restartable.
-
-Each chunk is parsed into aggregate deltas in memory, then written together with `chunks_done(chunk)` in ONE
-SQLite transaction. If the process dies mid-chunk, nothing of that chunk is in the store and it is re-read on
-restart; if it dies after the commit, the chunk is skipped. Either way every event is counted exactly once.
-
-We never keep raw dials. We keep:
-- aggregates (engagement by stratum x features x arm, pickup by hour x features x caller ID, QA by 30-min slot),
-- what each customer heard on connected calls (calls_heard), for "why did this customer hear X",
-- non-call events verbatim.
-"""
+"""Event ingestion (C1): chunk-by-chunk, idempotent, restartable."""
 from __future__ import annotations
 
 import json

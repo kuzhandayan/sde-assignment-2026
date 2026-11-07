@@ -1,17 +1,4 @@
-"""Caller-ID health (C5): detect a degraded number, pull it, spread load, explore new numbers safely.
-
-Caller ID is drawn independently per dial from the cohort's distribution, so within any time window every
-number sees the same mix of people and hours: comparing a number's pickup with the pooled pickup of the other
-numbers over the same window is a fair comparison with no modelling needed.
-
-States: unknown -> probing -> healthy | bad.   healthy -> degraded (half share) | bad (pulled).
-- unknown numbers get a small probe share (5% each, 15% max) until they have DID_PROBE_MIN_DIALS dials;
-- healthy numbers split the rest EQUALLY: spam-flagging and carrier reputation scale with per-number volume,
-  so the least-loaded allocation is the safest one;
-- a number whose pickup ratio vs the others is < 0.80 with z < -3 in any rolling window (3h/6h/24h) is pulled;
-- a pulled number rests 48h and is then re-probed: degradation from heavy use recovers, a real spam flag
-  fails the probe again at a cost of 5% of traffic for about a day.
-"""
+"""Caller-ID health (C5): detect a degraded number, pull it, spread load, explore new numbers safely."""
 from __future__ import annotations
 
 import json

@@ -1,9 +1,4 @@
-"""Deterministic crash injection for the recovery test (scripts/crash_test.py). Off unless CRASH_POINTS is set.
-
-CRASH_POINTS=after_approval_post,after_apply_post,after_auto_put,mid_chunk  -> the process hard-exits (no
-cleanup, like kill -9) the first time it reaches each named point. A marker file records which points have
-fired so the restarted process doesn't crash at the same point again.
-"""
+"""Deterministic crash injection for the recovery test (scripts/crash_test.py)."""
 import os
 from pathlib import Path
 

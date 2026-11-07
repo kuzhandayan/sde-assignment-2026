@@ -1,8 +1,4 @@
-"""Unit tests for the controller's load-bearing pieces. Run: python -m pytest -q tests
-
-End-to-end behaviour (scenarios, crash/restart) is covered by scripts/run_scenario.sh and
-scripts/crash_test.py, which need a running simulator.
-"""
+"""Unit tests for the controller's load-bearing pieces."""
 import json
 
 import pytest

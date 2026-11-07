@@ -1,12 +1,4 @@
-"""Thin HTTP client for the simulator. The only way the controller learns anything about the world.
-
-Retry policy:
-- GETs are retried on connection errors and 5xx with backoff.
-- POSTs that carry our own idempotency key (approvals, auto-apply) are retried too: a retry that lands twice
-  comes back as 409 duplicate_proposal_id, which the governance client reconciles.
-- /sim/advance is NOT blindly retried: on a timeout we read /sim/state to see whether time moved.
-- /llm and /validation spend credits, so they are never retried automatically.
-"""
+"""Thin HTTP client for the simulator."""
 from __future__ import annotations
 
 import logging

@@ -1,28 +1,4 @@
-"""Welcome-message x voice experimentation (C6), winner promotion, decay detection and rollback (C7).
-
-Unit of experimentation: (allocation key, dim), where the allocation key is `default` or a variant-segment
-cohort. welcome_message and voice are randomised independently per call, so the two dims form a factorial
-design: each dim's arms are compared averaged over the other dim, at no extra traffic cost.
-
-Per (key, dim), every review:
-1. Evidence = post-stratified engagement per arm (data.arm_stats_from), discounted with a 1.5-day half-life so
-   the estimate tracks the present (this is what makes decay visible).
-2. Harm stop: an arm significantly worse than the best (one-sided z, alpha 0.01 Bonferroni over arms,
-   n >= 150) is suspended (share 0). Suspended arms come back only when a rollback re-opens exploration, so
-   a winner that decays can be replaced by an arm that was worse at the time.
-3. Exploring: allocation follows P(best) (Beta posteriors, seeded Monte Carlo -> deterministic) with a 10% floor
-   per live arm; the very first allocation keeps 50% on the business default.
-4. Promotion: P(best) >= 0.95 AND n >= 300 AND Holm-corrected one-sided tests vs every other live arm at
-   alpha 0.05. Winner gets 1 - floors; each other live arm keeps a 5% floor (15% total max) as a reference.
-5. Decay: a promoted winner whose last-day rate is significantly below its rate at promotion (p < 0.01, >= 6%
-   relative), when the reference arms did not fall the same way, or whose P(best) drops under 0.5, is rolled
-   back to exploring.
-
-Experiments run on every workflow. Welcome message and voice are heard after the call connects, so they move
-engagement only: the primary KPI on engagement-primary workflows, the guardrail on pickup-primary ones (where
-call-time gains push the engagement RATE down through mix, see schedule.engagement_guardrail). On
-pickup-primary workflows the first exploration is gentler (70% stays on the business default).
-"""
+"""Welcome-message x voice experimentation (C6), winner promotion, decay detection and rollback (C7)."""
 from __future__ import annotations
 
 import json
@@ -247,8 +223,7 @@ def _promoted_target(w, alive):
 
 
 def _decay(ctx, wf, key, dim, rows, codes, st, alive) -> str | None:
-    """Winner's last-day engagement vs its estimate at promotion, controlling for a global shift via the
-    reference arms. Returns a reason string or None."""
+    """Winner's last-day engagement vs its estimate at promotion, controlling for a global shift via the..."""
     w = st["winner"]
     today = ctx.now // 1440
     if ctx.now - (st.get("promoted_minute") or ctx.now) < 1440 * S.EXP_DECAY_WINDOW_DAYS:
@@ -260,9 +235,7 @@ def _decay(ctx, wf, key, dim, rows, codes, st, alive) -> str | None:
     s = rs.get(w)
     if not s or s["raw_n"] < 150 or not st.get("winner_rate"):
         return None
-    # The rate at promotion is inflated by selection (winner's curse). Prefer the winner's rate measured AFTER
-    # promotion (excluding the last day being tested); fall back to the promotion estimate shrunk halfway
-    # toward the reference arms.
+    # baseline = post-promotion rate (avoids winner's curse), else shrunk promotion rate
     pday = (st.get("promoted_minute") or 0) // 1440 + 1
     post = [r for r in rows if pday <= r[0] < today - S.EXP_DECAY_WINDOW_DAYS + 1]
     ps = arm_stats_from(post, dim, today, 1e9, codes, contrast_only=False).get(w)
@@ -288,8 +261,7 @@ def _decay(ctx, wf, key, dim, rows, codes, st, alive) -> str | None:
 
 # ------------------------------------------------------------------------------------------- segments
 def discover_segment(ctx, wf: str, rows, segments: list[dict], default_alloc: dict) -> dict | None:
-    """Find one lead segment whose best arm differs significantly from the default population's preferred arm.
-    Bonferroni over every (segment, dim) tested. Returns {"where", "dim", "arm", "z", "why"} or None."""
+    """Find one lead segment whose best arm differs significantly from the default population's preferred arm."""
     if ctx.now // 1440 < S.SEG_START_DAY or len(segments) >= S.SEG_MAX:
         return None
     today = ctx.now // 1440

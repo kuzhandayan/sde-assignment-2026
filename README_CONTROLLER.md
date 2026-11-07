@@ -6,57 +6,47 @@ is [`TODO.md`](TODO.md).
 
 ## 1. Run it
 
-**Quickest start (macOS or Linux):** `./setup.sh`. It creates `.venv`, installs the requirements, runs the
-tests and runs public_01 end to end as a smoke test (written to `reports/smoke_public_01.md`, so the official
-reports are not overwritten), then prints what to try next. It needs Python 3.10+; macOS ships 3.9, so
-`brew install python@3.12` first.
-
-Note: the simulator draws its world with numpy's random generator, so a different numpy version builds a slightly
-different world. Reports regenerated on another machine can differ in detail from the committed ones.
+You only need **Docker**. Docker brings Python and every package, so there's no venv or local Python setup.
 
 ```bash
-pip install -r requirements.txt          # Python 3.10+; numpy, pyyaml, fastapi, uvicorn, httpx, pytest -- nothing else
+# run a whole scenario: simulator + controller (Ctrl+C after "controller-1 exited with code 0")
+SCENARIO=public_02_incidents docker compose up --build sim controller
+docker compose down
 
-# the contract: start the simulator yourself, then
-./run.sh http://127.0.0.1:8700           # runs until the scenario finishes, then exits 0
-
-# or the whole loop for one scenario (baseline + sim + controller + grade + supervisor snapshot):
-scripts/run_scenario.sh scenarios/public_01_dev.yaml public_01 8701
-scripts/run_scenario.sh scenarios/public_02_incidents.yaml public_02 8702
+# everything else runs in the `dev` container (the repo mounted into the controller image)
+docker compose run --rm dev                                       # unit tests
+docker compose run --rm dev scripts/run_scenario.sh scenarios/public_02_incidents.yaml public_02 8702
+                                                                  # sim + controller + grade, live progress
 ```
+
+The assignment contract is `./run.sh <SIM_URL>`. It runs the controller in Docker when Docker is available and
+falls back to local Python 3.10+ (`pip install -r requirements.txt`) on a machine without Docker.
 
 | env var | default | meaning |
 |---|---|---|
 | `CONTROLLER_DB` | `state/controller.db` | the controller's only state. Same file = resume after a crash. **New simulator run = new file.** |
-| `USE_DOCKER` | `0` | `1` builds and runs the controller image (`--network host` on Linux, `host.docker.internal` on macOS) |
+| `USE_DOCKER` | auto | `1` forces Docker, `0` forces local Python |
 | `STORE_CALLS` | `1` | keep what every customer heard on connected calls (compliance query). `0` saves disk at scale |
 | `VIEW_TOKEN` | unset | if set, the supervisor view requires `Authorization: Bearer <token>` |
-| `CONTROLLER_WAIT_S` | `600` | how long to wait for the simulator to come up before exiting with an error |
-| `BASE_IMAGE` | `python:3.12-slim` | Docker base image (override for offline/air-gapped builds) |
+| `CONTROLLER_WAIT_S` | `600` | how long to wait for the simulator before exiting with an error |
+| `BASE_IMAGE` | `python:3.12-slim` | Docker base image (override for offline builds) |
 
 Safety rails at start-up:
 - A second controller on the same DB is refused (file lock).
-- A DB that belongs to a different simulator run is refused (world fingerprint), because a simulator
-  restart is a new world.
+- A DB from a different simulator run is refused, because a simulator restart is a new world.
 
-Docker for local development (simulator + controller + view):
-
-```bash
-SCENARIO=public_02_incidents docker compose up --build sim controller   # Ctrl+C when the controller exits 0
-docker compose down
-SCENARIO=public_02_incidents docker compose --profile view up view      # http://127.0.0.1:8800
-```
+Note: the simulator draws its world with numpy's random generator, so a different numpy version builds a slightly
+different world. Reports regenerated on another machine can differ in detail from the committed ones.
 
 ## 2. Look at what it did
 
 ```bash
 # why did workflow X change at time T, who approved it, what happened next
-python -m controller why   --db state/public_02.db --workflow ks_cancel --at "D3 16:00"
+docker compose run --rm dev python -m controller why --db state/public_02.db --workflow ks_cancel --at "D3 16:30"
 # what a customer heard on each call, and why that variant was live (IRDAI question)
-python -m controller heard --db state/public_02.db --person ks_cancel:p0001234
-# supervisor view: one screen per tenant + loop health JSON
-python -m controller view  --db state/public_02.db     # http://127.0.0.1:8800/tenant/kestrel_finance
-python -m controller report --db state/public_02.db    # same, as markdown
+docker compose run --rm dev python -m controller heard --db state/public_02.db --person ks_cancel:p0001234
+# supervisor view of the last `docker compose up` run: one screen per tenant + loop health JSON
+SCENARIO=public_02_incidents docker compose --profile view up view   # http://127.0.0.1:8800/tenant/kestrel_finance
 ```
 
 Everything can also be queried directly. The `decisions` table is the plain-language audit log:
@@ -133,12 +123,11 @@ does three things:
 ## 5. Test
 
 ```bash
-python -m pytest -q tests                      # 13 controller unit tests + the simulator's own (≈2 s)
-python scripts/crash_test.py --kills 4         # kill/restart test against a live simulator (≈2 min)
-python scripts/eval_seeds.py --seeds 3         # robustness across random seeds of public_01/02 (≈6 min)
-python scripts/edge_cases.py                   # 9 end-to-end edge cases against a real simulator (≈4 min)
-scripts/e2e_from_scratch.sh                    # fresh clone + venv + all of the above + Docker (≈20 min)
-BASE_IMAGE=<local image> scripts/e2e_from_scratch.sh   # same, without pulling from Docker Hub
+docker compose run --rm dev                                        # 13 controller unit tests + simulator tests (≈3 s)
+docker compose run --rm dev python scripts/crash_test.py --kills 4 # kill/restart test against a live simulator (≈2 min)
+docker compose run --rm dev python scripts/edge_cases.py           # 9 end-to-end edge cases (≈3 min)
+docker compose run --rm dev python scripts/eval_seeds.py --seeds 3 # robustness across random seeds (≈6 min)
+scripts/e2e_from_scratch.sh        # CI-style: fresh clone + fresh venv + everything + Docker build (Linux, ≈20 min)
 ```
 
 ## 6. Extend it

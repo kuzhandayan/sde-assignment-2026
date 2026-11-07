@@ -1,21 +1,4 @@
-"""Governance client (C9): the only code that changes a workflow's config.
-
-Proposal state machine (table `proposals`, one row per proposal_id):
-
-  approval channel:  submitting -> pending -> approved -> applying -> applied
-                                      |          |           |
-                                      |          |           +-> stale   (config changed under us: re-plan)
-                                      |          +-> lapsed            (apply window missed: re-plan)
-                                      |          +-> stale             (we saw a newer version before applying)
-                                      +-> rejected | expired           (re-plan with fresh data, never resubmit)
-                     submitting -> failed | abandoned  (refused at submit, or crash before we know it was sent)
-  auto channel:      submitting -> applied | refused | stale | failed | abandoned
-
-Crash safety: the row is written (status 'submitting'/'applying') BEFORE the HTTP call, inside its own
-transaction. On restart `reconcile()` asks the simulator what really happened (list approvals by proposal_id,
-config history by proposal_id/approval_id) and moves the row to the true state. proposal_id is the
-simulator's idempotency key, so a retried POST can never create a second request.
-"""
+"""Governance client (C9): the only code that changes a workflow's config."""
 from __future__ import annotations
 
 import json

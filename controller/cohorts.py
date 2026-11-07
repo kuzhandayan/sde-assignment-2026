@@ -1,11 +1,4 @@
-"""The one shared cohort object (C2) and config helpers.
-
-A cohort is (workflow_id, cohort_id, where). The same id is used in the live config, in detection queries,
-in experiment state and in the supervisor view. Cohorts are never edited in place: a changed definition gets a
-new id, so historical evidence always refers to exactly one population.
-
-Config order is: variant segments first (more specific, evaluated first-match), then call-time cells.
-"""
+"""The one shared cohort object (C2) and config helpers."""
 from __future__ import annotations
 
 import copy

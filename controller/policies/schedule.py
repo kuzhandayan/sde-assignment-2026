@@ -1,20 +1,4 @@
-"""Call-time optimisation (C3 + C4), per cohort.
-
-The dialler always fills capacity; `hour_weights` only decide WHO it picks in each hour. So the lever is
-comparative advantage: in hour h, prefer the people for whom h is a relatively good hour.
-
-For cohort c:   q_c(h) = p_c(h) / (L_c * p_all(h))     (timing advantage, with the cohort's overall level L_c
-                                                         divided out, so no cohort is called more overall)
-                w_c(h) = clip(q_c(h) ** GAMMA, W_MIN, W_MAX)
-
-p_c(h) is shrunk toward L_c * p_all(h) with SCHED_SHRINK_K pseudo-dials, so thin cells stay near flat.
-Weights are never 0 (an hour where every eligible lead has weight 0 leaves capacity unused).
-
-Which features define the cells is learned from history (C3): for each lead feature we test whether its values
-have different hour profiles (chi-square excess over the degrees of freedom), and cross the two strongest.
-Per-person hours were considered and rejected: a person has 2-3 dials of history, far too few to estimate a
-personal hour curve (SUBMISSION.md section 5).
-"""
+"""Call-time optimisation (C3 + C4), per cohort."""
 from __future__ import annotations
 
 import math
@@ -140,8 +124,7 @@ def hour_tables(ctx, wf: str, cohorts: list[dict]) -> tuple[dict, dict]:
             q = pc[h] / (L * p_all[h]) if p_all[h] > 0 and L > 0 else 1.0
             tab[str(h)] = round(min(max(q ** g, S.SCHED_W_MIN), S.SCHED_W_MAX), 2)
         tables[c] = tab
-    # dry run: expected pickup per hour if hour-h capacity is drawn from cohorts in proportion share x weight
-    # (ignores eligibility depletion => an upper bound; impact uses half of it)
+    # dry run: expected pickup per hour (upper bound; impact uses half)
     def expected(weights):
         vals = []
         for h in hours:
@@ -177,9 +160,7 @@ def table_distance(a: dict, b: dict) -> float:
 
 
 def guardrail_check(ctx, wf: str) -> dict | None:
-    """Pickup since our last schedule change vs the 7 days before it. Returns a rollback reason or None.
-    Used for every workflow: for engagement-primary flows pickup is the guardrail, for pickup-primary it is the
-    KPI itself."""
+    """Pickup since our last schedule change vs the 7 days before it."""
     row = ctx.store.q("SELECT applied_minute FROM proposals WHERE workflow_id=? AND status='applied' AND "
                       "dims LIKE '%schedule%' ORDER BY applied_minute DESC LIMIT 1", (wf,))
     if not row or row[0][0] is None:
@@ -201,12 +182,7 @@ def guardrail_check(ctx, wf: str) -> dict | None:
 
 
 def engagement_guardrail(ctx, wf: str) -> dict | None:
-    """For workflows whose guardrail is engagement: last 2 full days vs the pre-controller baseline (history).
-
-    Better call timing reaches people sooner, so a larger share of connects comes from people who would only
-    have been reached on a later attempt -- the engagement RATE can fall even though conclusions rise. The
-    guardrail is on the rate, so we hold it: past 75% of the allowed drop we halve the sharpness of the hour
-    weights (gamma); past 100% we halve it again."""
+    """For workflows whose guardrail is engagement: last 2 full days vs the pre-controller baseline (history)."""
     g = ctx.wfs[wf]["objective"].get("guardrail") or {}
     limit = g.get("engagement_rate_max_drop")
     if limit is None:

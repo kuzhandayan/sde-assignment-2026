@@ -106,8 +106,7 @@ class Controller:
 
     # ------------------------------------------------------------------ start-up
     def _check_same_world(self, st: dict) -> None:
-        """Refuse to resume on a DB that belongs to a different simulator run (README: a simulator restart is a
-        new world). Fingerprint = scenario name + the first history chunk's event range."""
+        """Refuse to resume on a DB that belongs to a different simulator run (README: a simulator restart is a new..."""
         hist = self.api.list_chunks("history", -1)
         fp = {"scenario": st["scenario"], "first_chunk": [hist[0]["first_event_id"], hist[0]["last_event_id"],
                                                           hist[0]["until_minute"]] if hist else None}
@@ -139,8 +138,7 @@ class Controller:
         if first_run:
             with self.store.txn():
                 for wf in self.ctx.wfs:
-                    # the business default = the config live when we first saw the workflow; its arms are the
-                    # experiment controls
+                    # business default config = experiment control
                     self.store.set_meta(f"default_cfg:{wf}", self.ctx.live(wf)["config"])
                     cells = schedule.discover_cells(self.ctx, wf)
                     for c in cells:
