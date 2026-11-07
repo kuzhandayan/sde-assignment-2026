@@ -234,3 +234,33 @@ def test_apply_exactly_once_after_crash(tmp_path):
     Governance(FakeCtx(store, api)).reconcile()
     assert api.apply_calls == 1
     assert Governance(FakeCtx(store, api)).get(row["proposal_id"])["status"] == "applied"
+
+
+# ------------------------------------------------------------------------------------------------ HTTP retries
+def test_api_retries_5xx_and_does_not_double_advance():
+    import httpx
+    from controller.api import SimAPI
+    calls = {"state": 0, "advance": 0, "get": 0}
+
+    def handler(req):
+        if req.url.path == "/workflows":
+            calls["get"] += 1
+            return httpx.Response(503 if calls["get"] < 3 else 200, json=[] if calls["get"] >= 3 else {"e": 1})
+        if req.url.path == "/sim/state":
+            calls["state"] += 1
+            # time has moved by the second read: the advance happened even though its response was lost
+            return httpx.Response(200, json={"sim_minute": 0 if calls["state"] == 1 else 30})
+        if req.url.path == "/sim/advance":
+            calls["advance"] += 1
+            raise httpx.ReadTimeout("lost response", request=req)
+        return httpx.Response(404)
+
+    api = SimAPI("http://sim")
+    api.c = httpx.Client(base_url="http://sim", transport=httpx.MockTransport(handler))
+    import controller.api as mod
+    mod.time.sleep = lambda s: None
+    assert api.workflows() == []
+    assert calls["get"] == 3
+    r = api.advance(30)
+    assert r.ok and r.body.get("recovered")
+    assert calls["advance"] == 1          # never re-sent once we saw time move

@@ -60,8 +60,23 @@ class Ctx:
         return -10 ** 9
 
 
+def _single_instance(db: str):
+    """Two controllers on one state DB would both drive the world: refuse the second one."""
+    import fcntl
+    os.makedirs(os.path.dirname(os.path.abspath(db)), exist_ok=True)
+    fh = open(db + ".lock", "w")
+    try:
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        raise SystemExit(f"another controller is already running on {db}")
+    fh.write(str(os.getpid()))
+    fh.flush()
+    return fh
+
+
 class Controller:
     def __init__(self, url: str, db: str, store_calls: bool = True):
+        self._lock = _single_instance(db)
         self.api = SimAPI(url)
         self.store = Store(db)
         self.ctx = Ctx(self.api, self.store)
@@ -90,8 +105,24 @@ class Controller:
                               f"approval request", ev)
 
     # ------------------------------------------------------------------ start-up
+    def _check_same_world(self, st: dict) -> None:
+        """Refuse to resume on a DB that belongs to a different simulator run (README: a simulator restart is a
+        new world). Fingerprint = scenario name + the first history chunk's event range."""
+        hist = self.api.list_chunks("history", -1)
+        fp = {"scenario": st["scenario"], "first_chunk": [hist[0]["first_event_id"], hist[0]["last_event_id"],
+                                                          hist[0]["until_minute"]] if hist else None}
+        old = self.store.get_meta("world")
+        if old is None:
+            self.store.set_meta("world", fp)
+            return
+        done = self.store.q1("SELECT MAX(last_event_id) FROM chunks_done") or 0
+        if old != fp or st["last_event_id"] < done:
+            raise SystemExit(f"state DB {self.store.path} belongs to another simulator run ({old}); this simulator "
+                             f"is {fp} at event {st['last_event_id']} (we have {done}). Use a new CONTROLLER_DB.")
+
     def bootstrap(self) -> None:
         st = self.api.state()
+        self._check_same_world(st)
         self.ctx.now = st["sim_minute"]
         for w in self.api.workflows():
             self.ctx.wfs[w["workflow_id"]] = w

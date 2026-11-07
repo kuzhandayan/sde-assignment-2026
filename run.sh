@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 DB="${CONTROLLER_DB:-state/controller.db}"
 mkdir -p "$(dirname "$DB")"
 if [ "${USE_DOCKER:-0}" = "1" ]; then
-  docker build -q -t formi-controller . >/dev/null
+  docker build -q ${BASE_IMAGE:+--build-arg BASE_IMAGE=$BASE_IMAGE} -t formi-controller . >/dev/null
   NET="--network host"
   if [ "$(uname)" = "Darwin" ]; then
     # Docker Desktop on macOS: reach the host's simulator through host.docker.internal instead

@@ -67,7 +67,10 @@ class SimAPI:
     def _get(self, path, **params) -> ApiResult:
         return self._send("GET", path, True, params=params or None)
 
-    def wait_ready(self, seconds: float = 600) -> None:
+    def wait_ready(self, seconds: float | None = None) -> None:
+        """Wait for the simulator to come up (it may start after us). CONTROLLER_WAIT_S overrides (default 600)."""
+        import os
+        seconds = float(os.environ.get("CONTROLLER_WAIT_S", 600)) if seconds is None else seconds
         end = time.time() + seconds
         while True:
             try:

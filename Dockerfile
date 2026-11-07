@@ -1,5 +1,6 @@
 # Controller image. The simulator is NOT baked in: the grader runs its own copy and passes its URL.
-FROM python:3.12-slim
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE}
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY requirements.txt .
