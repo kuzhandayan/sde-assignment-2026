@@ -132,10 +132,11 @@ class Planner:
         cfg["allocations"]["default"]["caller_id"] = _step_toward(cur, target, pol.get("max_shift", 0))
         if not changed_dims(live["config"], cfg):
             return
-        body = {"base_version": live["version"], "proposed_config": cfg,
-                "rationale": "; ".join(why) or "spread dialling across healthy caller IDs",
-                "change_summary": f"caller ID {_fmt_dist(cur)} -> {_fmt_dist(cfg['allocations']['default']['caller_id'])}",
-                "evidence": {"caller_id": callerid.summary(self.ctx, wf)}}
+        body = self._body(wf, live, cfg, {
+            "summary": [f"caller ID {_fmt_dist(cur)} -> {_fmt_dist(cfg['allocations']['default']['caller_id'])}"],
+            "why": why or ["spread dialling across healthy caller IDs"], "impact": None,
+            "dry_run": {"caller_id": (self.did_target.get(wf) or {}).get("evidence")},
+            "evidence": {"caller_id": callerid.summary(self.ctx, wf)}})
         self.gov.auto(wf, body, "callerid" if urgent else "routine", ["caller_id"])
 
     # ------------------------------------------------------------------ C. routine
@@ -161,10 +162,10 @@ class Planner:
             auto_cfg = self._auto_part(wf, live, target, allowed, pol.get("max_shift", 0), info)
             adims = changed_dims(live["config"], auto_cfg)
             if adims:
-                body = {"base_version": live["version"], "proposed_config": auto_cfg,
-                        "rationale": " | ".join(info["why_by_dim"].get(d, d) for d in adims),
-                        "change_summary": "; ".join(info["summary_by_dim"].get(d, d) for d in adims),
-                        "evidence": {d: info["evidence_by_dim"].get(d) for d in adims}}
+                body = self._body(wf, live, auto_cfg, {**info, "summary": [info["summary_by_dim"].get(d, d)
+                                                                           for d in adims],
+                                                       "why": [info["why_by_dim"].get(d, d) for d in adims]})
+                body["evidence"] = {d: info["evidence_by_dim"].get(d) for d in adims}
                 self.gov.auto(wf, body, "routine", adims)
                 ctx.store.set_meta(f"last_auto:{wf}", ctx.now)
                 live = ctx.live(wf)

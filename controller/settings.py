@@ -46,6 +46,9 @@ DID_PROBE_MAX_TOTAL = 0.15
 DID_PROBE_MIN_DIALS = 250    # dials before a probed number is judged
 DID_BAD_RATIO = 0.80         # pickup relative to the other numbers below which a number is pulled ...
 DID_BAD_Z = -3.0             # ... if the difference is also this significant
+DID_SEVERE_RATIO = 0.65      # below this a number is pulled even if few numbers remain; between this and
+                             # DID_BAD_RATIO it is pulled only if >= 2 other good numbers stay in rotation,
+                             # otherwise its share is halved (concentrating load degrades the rest)
 DID_HEALTHY_RATIO_LB = 0.85  # lower 95% bound of the ratio a probed number must clear to be promoted
 DID_WINDOWS_H = (3, 6, 24)   # rolling windows checked (hours)
 DID_MIN_WINDOW_DIALS = 150

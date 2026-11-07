@@ -4,7 +4,7 @@ Caller ID is drawn independently per dial from the cohort's distribution, so wit
 number sees the same mix of people and hours: comparing a number's pickup with the pooled pickup of the other
 numbers over the same window is a fair comparison with no modelling needed.
 
-States: unknown -> probing -> healthy | bad.   healthy -> bad when it degrades.
+States: unknown -> probing -> healthy | bad.   healthy -> degraded (half share) | bad (pulled).
 - unknown numbers get a small probe share (5% each, 15% max) until they have DID_PROBE_MIN_DIALS dials;
 - healthy numbers split the rest EQUALLY: spam-flagging and carrier reputation scale with per-number volume,
   so the least-loaded allocation is the safest one;
@@ -72,14 +72,31 @@ def review(ctx, wf: str, live_dist: dict) -> dict:
             evidence[f"{did}@{hrs}h"] = {"dials": n, "pickup": round(c / n, 4), "others_pickup": round(oc / on, 4),
                                          "ratio": round(r, 3), "ci": [round(lo, 3), round(hi, 3)], "z": round(z, 2)}
             if r < S.DID_BAD_RATIO and z < S.DID_BAD_Z:
-                ctx.store.set_meta(f"did_fails:{wf}:{did}", int(ctx.store.get_meta(f"did_fails:{wf}:{did}", 0)) + 1)
-                _set(ctx, wf, did, "bad", f"{hrs}h window: pickup {c / n:.3f} vs {oc / on:.3f} (ratio {r:.2f}, "
-                                          f"z {z:.1f}) over {n} dials")
-                why.append(f"pull {did}: pickup {c / n:.1%} vs {oc / on:.1%} on the other numbers over the last "
-                           f"{hrs}h ({n} dials, z={z:.1f})")
-                urgent = True
+                healthy_others = [d for d in in_use if d != did and _statuses(ctx, wf).get(d, ("unknown",))[0]
+                                  in ("healthy", "probing")]
+                severe = r < S.DID_SEVERE_RATIO
+                if severe or len(healthy_others) >= 2:
+                    ctx.store.set_meta(f"did_fails:{wf}:{did}",
+                                       int(ctx.store.get_meta(f"did_fails:{wf}:{did}", 0)) + 1)
+                    _set(ctx, wf, did, "bad", f"{hrs}h window: pickup {c / n:.3f} vs {oc / on:.3f} (ratio {r:.2f}, "
+                                              f"z {z:.1f}) over {n} dials")
+                    why.append(f"pull {did}: pickup {c / n:.1%} vs {oc / on:.1%} on the other numbers over the "
+                               f"last {hrs}h ({n} dials, z={z:.1f})")
+                    urgent = True
+                elif status != "degraded":
+                    # mild drop and pulling it would concentrate load on too few numbers: halve its share
+                    _set(ctx, wf, did, "degraded", f"{hrs}h window: ratio {r:.2f} (z {z:.1f}); share halved")
+                    why.append(f"halve {did}: pickup {c / n:.1%} vs {oc / on:.1%} on the other numbers over the "
+                               f"last {hrs}h ({n} dials, z={z:.1f}); not pulled, to keep load spread")
+                    urgent = True
+                else:
+                    break
                 ctx.store.decide(ctx.now, wf, "callerid.degraded", why[-1], evidence[f"{did}@{hrs}h"])
                 break
+            if status == "degraded" and hrs == max(S.DID_WINDOWS_H) and r >= 0.92:
+                _set(ctx, wf, did, "healthy", f"recovered: ratio {r:.2f} over {hrs}h")
+                why.append(f"restore {did} to a full share: pickup ratio recovered to {r:.2f}")
+                ctx.store.decide(ctx.now, wf, "callerid.recovered", why[-1], evidence[f"{did}@{hrs}h"])
             if status == "probing" and hrs == max(S.DID_WINDOWS_H):
                 since = st[did][1] or 0
                 tot = ctx.ev.pickup_by_did(wf, since, ctx.now)
@@ -108,8 +125,11 @@ def review(ctx, wf: str, live_dist: dict) -> dict:
                                                                 f"re-probe at {S.DID_REPROBE_SHARE:.0%}", None)
     st = _statuses(ctx, wf)
     healthy = [d for d in opts if st.get(d, ("unknown",))[0] == "healthy"]
+    degraded = [d for d in opts if st.get(d, ("unknown",))[0] == "degraded"]
     probing = [d for d in opts if st.get(d, ("unknown",))[0] == "probing"]
     unknown = [d for d in opts if st.get(d, ("unknown",))[0] == "unknown"]
+    if not healthy and degraded:
+        healthy, degraded = degraded, []
     if not healthy:   # nothing proven good: keep what's live minus anything bad
         keep = [d for d in in_use if st.get(d, ("unknown",))[0] != "bad"] or in_use
         return {"target": {d: 1 / len(keep) for d in keep}, "urgent": urgent, "why": why, "evidence": evidence}
@@ -123,8 +143,11 @@ def review(ctx, wf: str, live_dist: dict) -> dict:
              for d in probing}
     probe_total = sum(share.values())
     target = dict(share)
+    units = len(healthy) + 0.5 * len(degraded)
     for d in healthy:
-        target[d] = (1 - probe_total) / len(healthy)
+        target[d] = (1 - probe_total) / units
+    for d in degraded:
+        target[d] = 0.5 * (1 - probe_total) / units
     return {"target": target, "urgent": urgent, "why": why, "evidence": evidence}
 
 
