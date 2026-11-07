@@ -13,7 +13,13 @@ DB="${CONTROLLER_DB:-state/controller.db}"
 mkdir -p "$(dirname "$DB")"
 if [ "${USE_DOCKER:-0}" = "1" ]; then
   docker build -q -t formi-controller . >/dev/null
-  exec docker run --rm --network host -v "$PWD/$(dirname "$DB")":/app/state formi-controller \
+  NET="--network host"
+  if [ "$(uname)" = "Darwin" ]; then
+    # Docker Desktop on macOS: reach the host's simulator through host.docker.internal instead
+    NET=""
+    SIM_URL="$(echo "$SIM_URL" | sed -e 's#127.0.0.1#host.docker.internal#' -e 's#localhost#host.docker.internal#')"
+  fi
+  exec docker run --rm $NET -v "$PWD/$(dirname "$DB")":/app/state formi-controller \
        run --url "$SIM_URL" --db "/app/state/$(basename "$DB")"
 fi
 exec python -m controller run --url "$SIM_URL" --db "$DB"

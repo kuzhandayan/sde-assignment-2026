@@ -22,6 +22,7 @@ import json
 import logging
 
 from . import settings as S
+from .faults import crashpoint
 from .simtime import minute_of
 
 log = logging.getLogger("controller.gov")
@@ -101,6 +102,7 @@ class Governance:
                               {"dims": dims, "impact_score": body["impact_score"],
                                "affected_leads": body["affected_leads"]}, pid)
         r = self.api.request_approval(body)
+        crashpoint("after_approval_post")
         with self.store.txn():
             if r.ok:
                 self.store.x("UPDATE proposals SET status='pending', approval_id=? WHERE proposal_id=?",
@@ -129,6 +131,7 @@ class Governance:
                               {"dims": dims}, pid)
         r = self.api.auto_apply(wf, {k: body[k] for k in ("proposal_id", "base_version", "proposed_config",
                                                            "rationale", "evidence") if k in body})
+        crashpoint("after_auto_put")
         with self.store.txn():
             if r.ok:
                 self._mark_applied(wf, pid, r.body["version"])
@@ -215,6 +218,7 @@ class Governance:
         with self.store.txn():
             self.store.x("UPDATE proposals SET status='applying' WHERE proposal_id=?", (pid,))
         r = self.api.apply(wf, aid)
+        crashpoint("after_apply_post")
         with self.store.txn():
             if r.ok:
                 self._mark_applied(wf, pid, r.body["version"])

@@ -534,9 +534,11 @@ def _diff(old, new, dims) -> dict:
                           "order": list(ni)}
     for d in ("welcome_message", "voice", "caller_id"):
         if d in dims:
-            keys = ["default"] + [c["id"] for c in new.get("cohorts", [])]
-            out[d] = {k: {"from": dist(old, k, d) if (k == "default" or k in old["allocations"]) else "default",
-                          "to": dist(new, k, d)} for k in keys if dist(old, k, d) != dist(new, k, d)}
+            # only keys that carry their own distribution (cohorts without one inherit `default`)
+            keys = ["default"] + [c["id"] for c in new.get("cohorts", [])
+                                  if d in (new["allocations"].get(c["id"]) or {}) or d in (old["allocations"].get(c["id"]) or {})]
+            out[d] = {k: {"from": dist(old, k, d), "to": dist(new, k, d)} for k in keys
+                      if dist(old, k, d) != dist(new, k, d)}
     if "prompt_version" in dims:
         out["prompt_version"] = {"from": old["prompt_version"], "to": new["prompt_version"]}
     if "schedule" in dims:

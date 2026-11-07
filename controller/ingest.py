@@ -17,6 +17,7 @@ import time
 
 import numpy as np
 
+from .faults import crashpoint
 from .simtime import minute_of
 from .store import Store
 
@@ -194,6 +195,8 @@ class Ingestor:
                     world.append(ev)
             db = self.store.db
             db.executemany("INSERT OR REPLACE INTO persons VALUES (?,?,?)", new_persons)
+            if meta["kind"] == "events":
+                crashpoint("mid_chunk")   # inside the transaction: nothing of this chunk may survive
             db.executemany(
                 "INSERT INTO agg_eng VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET "
                 "conn=conn+excluded.conn, eng=eng+excluded.eng", [(*k, *v) for k, v in eng.items()])

@@ -1,0 +1,7 @@
+runs/
+state/
+logs/
+.git/
+**/__pycache__
+*.db*
+reports/
