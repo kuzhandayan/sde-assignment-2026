@@ -10,7 +10,7 @@ is [`TODO.md`](TODO.md).
 tests and runs public_01 end to end, then prints what to try next.
 
 ```bash
-pip install -r requirements.txt          # numpy, pyyaml, fastapi, uvicorn, httpx, pytest -- nothing else
+pip install -r requirements.txt          # Python 3.10+; numpy, pyyaml, fastapi, uvicorn, httpx, pytest -- nothing else
 
 # the contract: start the simulator yourself, then
 ./run.sh http://127.0.0.1:8700           # runs until the scenario finishes, then exits 0

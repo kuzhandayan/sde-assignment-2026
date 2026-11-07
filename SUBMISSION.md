@@ -1,7 +1,7 @@
 # Outcome-First Agent Loop — Submission
 
 **Name:** Kuzhandayan K V · **Date:** 2026-11-07 · **Hours actually spent (be honest):** _fill in before submitting_ ·
-**Language / storage:** Python 3.11+ (only the packages already in `requirements.txt`) / SQLite (WAL), one file
+**Language / storage:** Python 3.10+ (only the packages already in `requirements.txt`) / SQLite (WAL), one file
 
 > How to run, debug and extend: [`README_CONTROLLER.md`](README_CONTROLLER.md). Requirement-by-requirement
 > status: [`TODO.md`](TODO.md). Reports: [`reports/`](reports/).

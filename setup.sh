@@ -1,17 +1,39 @@
 #!/usr/bin/env bash
 # One-time setup + smoke test (macOS or Linux):  ./setup.sh
 # Creates .venv, installs requirements, runs the unit tests and one full scenario end to end.
+# Needs Python 3.10+ (the provided simulator uses 3.10 syntax). macOS's built-in python3 is 3.9: install a newer
+# one with `brew install python@3.12` (or from python.org) and re-run.
 set -euo pipefail
 cd "$(dirname "$0")"
-PY="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-echo "Using $($PY --version) at $PY"
+
+PY=""
+for c in python3.13 python3.12 python3.11 python3.10 \
+         /opt/homebrew/bin/python3 "$HOME/.homebrew/bin/python3" /usr/local/bin/python3 python3; do
+  p="$(command -v "$c" 2>/dev/null || true)"
+  [ -n "$p" ] || continue
+  if "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then PY="$p"; break; fi
+done
+if [ -z "$PY" ]; then
+  echo "ERROR: Python 3.10 or newer is required (found: $(python3 --version 2>&1))."
+  echo "On macOS:  brew install python@3.12     (or download from https://www.python.org/downloads/)"
+  echo "Then run ./setup.sh again."
+  exit 1
+fi
+echo "[1/4] Using $($PY --version) at $PY"
+
+if [ -d .venv ] && ! .venv/bin/python -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+  echo "      removing old .venv built with an older Python"
+  rm -rf .venv
+fi
 [ -d .venv ] || "$PY" -m venv .venv
-.venv/bin/python -m pip install -q --upgrade pip
-.venv/bin/python -m pip install -q -r requirements.txt
+echo "[2/4] Installing packages (1-2 minutes the first time)..."
+.venv/bin/python -m pip install --disable-pip-version-check --progress-bar on -r requirements.txt
 export PATH="$PWD/.venv/bin:$PATH"
-echo "== unit tests"
+
+echo "[3/4] Unit tests"
 python -m pytest -q tests
-echo "== public_01 end to end (about 1 minute)"
+
+echo "[4/4] public_01 end to end (about 1 minute)"
 scripts/run_scenario.sh scenarios/public_01_dev.yaml public_01 8701 >/dev/null
 sed -n 5,10p reports/public_01.md
 cat <<'MSG'
