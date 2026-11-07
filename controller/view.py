@@ -67,12 +67,15 @@ def snapshot(path: str, tenant: str | None = None) -> dict:
                                               (wf,))]
         frozen = [f for f in frozen if not any(m >= f["edited"] and f["dim"] in b.get("changed_dims", [])
                                                for m, b in approved)]
-        k_today = _k(db, wf, today * 1440, (today + 1) * 1440)
+        # latest day that actually has calls (early in a day, before dialling starts, it has none yet)
+        last = db.execute("SELECT MAX(day) FROM agg_pick WHERE workflow_id=? AND day<=?", (wf, today)).fetchone()[0]
+        kday = last if last is not None and last >= 0 else today
+        k_today = _k(db, wf, kday * 1440, (kday + 1) * 1440)
         k_base = _k(db, wf, -14 * 1440, 0)
         out["tenants"].setdefault(w["tenant_id"], {})[wf] = {
             "use_case": info.get("use_case"), "objective": info["objective"],
             "config_version": cfg["version"] if cfg else None, "prompt": live.get("prompt_version"),
-            "day": f"D{today}", "kpis_today": k_today, "kpis_before_controller": k_base,
+            "day": f"D{today}", "kpi_day": f"D{kday}", "kpis_today": k_today, "kpis_before_controller": k_base,
             "being_tested": tests, "wanted_from_you": pending, "changed_today": changed, "caller_ids": dids,
             "incidents": inc, "cohorts": cohorts, "supervisor_edits_respected": frozen}
     out["alerts"] = [dict(r) for r in db.execute("SELECT minute, severity, workflow_id, summary, action FROM alerts "
@@ -141,7 +144,7 @@ def render_tenant(snap: dict, tenant: str) -> str:
                  f"<p>Primary KPI <b>{_h(d['objective']['primary'])}</b>, guardrail {_h(d['objective']['guardrail'])}"
                  f" · config v{_h(d['config_version'])} · prompt {_h(d['prompt'])}</p>"
                  f"<table><tr><th></th><th>pickup</th><th>engagement</th></tr>"
-                 f"<tr><td>{_h(d['day'])} (latest day)</td><td>{_h(kt['pickup_rate'])}</td><td>{_h(kt['engagement_rate'])}</td></tr>"
+                 f"<tr><td>{_h(d['kpi_day'])} (latest day with calls)</td><td>{_h(kt['pickup_rate'])}</td><td>{_h(kt['engagement_rate'])}</td></tr>"
                  f"<tr><td>before the controller (history)</td><td>{_h(kb['pickup_rate'])}</td>"
                  f"<td>{_h(kb['engagement_rate'])}</td></tr></table>")
         P.append("<h3>What we want from you</h3>")
