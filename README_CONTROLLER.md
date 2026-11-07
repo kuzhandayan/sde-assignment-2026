@@ -7,7 +7,12 @@ is [`TODO.md`](TODO.md).
 ## 1. Run it
 
 **Quickest start (macOS or Linux):** `./setup.sh`. It creates `.venv`, installs the requirements, runs the
-tests and runs public_01 end to end, then prints what to try next.
+tests and runs public_01 end to end as a smoke test (written to `reports/smoke_public_01.md`, so the official
+reports are not overwritten), then prints what to try next. It needs Python 3.10+; macOS ships 3.9, so
+`brew install python@3.12` first.
+
+Note: the simulator draws its world with numpy's random generator, so a different numpy version builds a slightly
+different world. Reports regenerated on another machine can differ in detail from the committed ones.
 
 ```bash
 pip install -r requirements.txt          # Python 3.10+; numpy, pyyaml, fastapi, uvicorn, httpx, pytest -- nothing else

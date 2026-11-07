@@ -9,3 +9,5 @@ logs/
 *.db-shm
 *.lock
 .venv/
+reports/smoke_*.md
+reports/supervisor_smoke_*.md

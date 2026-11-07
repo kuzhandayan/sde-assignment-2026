@@ -20,7 +20,7 @@ where to find the evidence.
 | A2 | Read `SUBMISSION.md` fully and rewrite any stakeholder reply (§3) in your own words if you want | 👤 to do |
 | A3 | Push to a **private GitHub repo** and give access to the email on the form (commit history is graded; push as-is, don't squash) | 👤 to do |
 | A4 | Verify Docker once with the real base image: `SCENARIO=public_01_dev docker compose up --build sim controller`. Everything else in the Docker path is already tested with a local base image (Docker Hub was blocked in my environment) | 👤 to do |
-| A5 | Run everything once on your Mac: `pip install -r requirements.txt && python -m pytest -q tests && scripts/run_scenario.sh scenarios/public_01_dev.yaml public_01` | 👤 to do |
+| A5 | Run everything once on your Mac: `./setup.sh` (needs Python 3.10+; macOS's built-in 3.9 is too old → `brew install python@3.12`) | ✅ done 7 Nov — 19 tests pass, public_01 smoke run +15.2% |
 | A6 | Optional: record a ≤ 5-min walkthrough video (show `why`, the supervisor view, the crash test) | 👤 optional |
 | A7 | Check whether you submitted Round 1 — if not, the email says both rounds are needed | 👤 check |
 | A8 | Prepare for the 60-min review: be able to explain one decision live from the audit store (`python -m controller why ...`), say what breaks if a constraint changes, and defend each cut | 👤 prepare |
@@ -114,4 +114,5 @@ where to find the evidence.
 | H4 | Docker | ✅ (A4 left) | `--no-cache` build, compose run, `run.sh USE_DOCKER=1`, container kill/restart all pass (`reports/e2e_from_scratch.md`) with a local base image; the `python:3.12-slim` pull is A4 |
 | H6 | Edge cases end to end | ✅ | `scripts/edge_cases.py` 9/9 (`reports/edge_cases.md`) |
 | H7 | Full from-scratch verification | ✅ | `scripts/e2e_from_scratch.sh` → `reports/e2e_from_scratch.md` |
+| H8 | One-command setup with live progress | ✅ | `./setup.sh` (finds Python 3.10+, installs, tests, smoke run → `reports/smoke_public_01.md`); every script prints timestamped progress and fails fast with the log tail |
 | H5 | Authentication | ✅ (by decision) | Not required by the brief. View is read-only, localhost-bound, optional `VIEW_TOKEN` bearer token; production sits behind SSO/gateway |
