@@ -9,12 +9,37 @@ import sqlite3
 from .simtime import label
 
 
+import functools
+import threading
+
+_open = threading.local()
+
+
 def _db(path):
+    """Read-only connection, closed when the calling public function returns (see _closing)."""
     db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
     db.row_factory = sqlite3.Row
+    getattr(_open, "conns", []).append(db)
     return db
 
 
+def _closing(fn):
+    """Close every connection fn opened. A file left open across a run restart can crash the reader on
+    Docker Desktop for Mac bind mounts (SIGBUS on SQLite's shared-memory file)."""
+    @functools.wraps(fn)
+    def wrap(*a, **k):
+        outer = getattr(_open, "conns", None)
+        _open.conns = []
+        try:
+            return fn(*a, **k)
+        finally:
+            for c in _open.conns:
+                c.close()
+            _open.conns = outer if outer is not None else []
+    return wrap
+
+
+@_closing
 def snapshot(path: str, tenant: str | None = None) -> dict:
     db = _db(path)
     now = db.execute("SELECT COALESCE(MAX(minute),0) FROM metrics").fetchone()[0]
@@ -92,6 +117,7 @@ def _k(db, wf, lo, hi):
             "engagement_rate": round(e[1] / e[0], 4) if e[0] else None, "dials": p[0]}
 
 
+@_closing
 def loop_health(path: str) -> dict:
     db = _db(path)
     now = db.execute("SELECT COALESCE(MAX(minute),0) FROM metrics").fetchone()[0]
