@@ -10,7 +10,7 @@ services:
   app:
     <<: *app
     entrypoint: [scripts/demo.sh]
-    environment: [SCENARIOS]
+    environment: [SCENARIOS, VIEW_RELOAD=1]   # view restarts by itself when controller/ code changes
     ports: ["8800:8800"]
   dev:
     <<: *app

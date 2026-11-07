@@ -17,7 +17,9 @@ That one command:
 1. runs the unit tests;
 2. runs **public_01** and **public_02** end to end (simulator + controller + grade against the no-op baseline),
    with live progress and a result table for each;
-3. then keeps the supervisor view open at **http://localhost:8800**.
+3. shows the supervisor view at **http://localhost:8800** from the start. The page follows the run in progress
+   and refreshes itself every 10 seconds, so you can watch the app work day by day. When the code in
+   `controller/` changes, the view server reloads by itself.
 
 It takes about 2 minutes. Press **Ctrl+C** to stop, then run `docker compose down`. To run other scenarios:
 `SCENARIOS="public_03_load" docker compose up`.
@@ -46,7 +48,7 @@ different world. Reports regenerated on another machine can differ in detail fro
 
 ## 2. Look at what it did
 
-After `docker compose up`, open http://localhost:8800 for the supervisor view. For the audit questions, use a
+While `docker compose up` runs, open http://localhost:8800 for the live supervisor view. For the audit questions, use a
 second terminal while it's running or after it stops:
 
 ```bash

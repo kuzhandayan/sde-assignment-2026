@@ -201,12 +201,27 @@ def markdown_report(path: str) -> str:
     return "\n".join(L)
 
 
-def serve(path: str, host: str = "127.0.0.1", port: int = 8800) -> None:
+def _resolve(path: str) -> str | None:
+    """A DB file, or a folder: then the most recently written *.db in it (the run in progress)."""
+    from pathlib import Path
+    p = Path(path)
+    if p.is_dir():
+        dbs = sorted(p.glob("*.db"), key=lambda f: f.stat().st_mtime)
+        return str(dbs[-1]) if dbs else None
+    return str(p) if p.exists() else None
+
+
+WAITING = "<html><head><meta http-equiv='refresh' content='5'></head><body style='font-family:sans-serif'>" \
+          "<h2>Waiting for the first run to start...</h2><p>This page refreshes by itself.</p></body></html>"
+
+
+def create_app():
+    """FastAPI app; DB path from VIEW_DB (file or folder). Used by uvicorn, also with --reload."""
     from fastapi import FastAPI, HTTPException, Request
     from fastapi.responses import HTMLResponse, PlainTextResponse
-    import uvicorn
     from .audit import why
 
+    path = os.environ.get("VIEW_DB", "state")
     app = FastAPI(title="Formi controller — supervisor view")
     token = os.environ.get("VIEW_TOKEN")
 
@@ -216,29 +231,51 @@ def serve(path: str, host: str = "127.0.0.1", port: int = 8800) -> None:
             return PlainTextResponse("unauthorised", status_code=401)
         return await call_next(request)
 
+    def db_or_wait():
+        db = _resolve(path)
+        if db is None:
+            raise HTTPException(503, "no run yet")
+        return db
+
     @app.get("/", response_class=HTMLResponse)
     def index():
-        s = snapshot(path)
-        return "<h1>Tenants</h1><ul>" + "".join(f"<li><a href='/tenant/{_h(t)}'>{_h(t)}</a></li>"
-                                                for t in s["tenants"]) + "</ul><p><a href='/api/loop'>loop health</a></p>"
+        db = _resolve(path)
+        if db is None:
+            return WAITING
+        s = snapshot(db)
+        return ("<html><head><meta http-equiv='refresh' content='10'></head><body style='font-family:sans-serif'>"
+                f"<h1>Tenants</h1><p>Run: <b>{_h(os.path.basename(db))}</b>, as of {_h(s['now'])}</p><ul>"
+                + "".join(f"<li><a href='/tenant/{_h(t)}'>{_h(t)}</a></li>" for t in s["tenants"])
+                + "</ul><p><a href='/api/loop'>loop health</a></p></body></html>")
 
     @app.get("/tenant/{tenant}", response_class=HTMLResponse)
     def tenant_page(tenant: str):
-        s = snapshot(path, tenant)
+        db = _resolve(path)
+        if db is None:
+            return WAITING
+        s = snapshot(db, tenant)
         if tenant not in s["tenants"]:
-            raise HTTPException(404, "unknown tenant")
-        return render_tenant(s, tenant)
+            raise HTTPException(404, "unknown tenant in this run")
+        return render_tenant(s, tenant).replace("<head>", "<head><meta http-equiv='refresh' content='10'>", 1)
 
     @app.get("/api/tenant/{tenant}")
     def tenant_json(tenant: str):
-        return snapshot(path, tenant)
+        return snapshot(db_or_wait(), tenant)
 
     @app.get("/api/loop")
     def loop():
-        return loop_health(path)
+        return loop_health(db_or_wait())
 
     @app.get("/api/why", response_class=PlainTextResponse)
     def why_ep(workflow: str, at: str):
-        return why(path, workflow, at)
+        return why(db_or_wait(), workflow, at)
 
-    uvicorn.run(app, host=host, port=port, log_level="warning")
+    return app
+
+
+def serve(path: str, host: str = "127.0.0.1", port: int = 8800) -> None:
+    import uvicorn
+    os.environ["VIEW_DB"] = path
+    reload = os.environ.get("VIEW_RELOAD") == "1"
+    uvicorn.run("controller.view:create_app", factory=True, host=host, port=port, log_level="warning",
+                reload=reload, reload_dirs=["controller"] if reload else None)

@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# What `docker compose up` runs: tests, then each scenario end to end (simulator + controller + grade),
-# then the supervisor view of the last one. SCENARIOS overrides the list.
+# What `docker compose up` runs: the supervisor view (live), tests, then each scenario end to end
+# (simulator + controller + grade). SCENARIOS overrides the list.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 SCENARIOS="${SCENARIOS:-public_01_dev public_02_incidents}"
 say() { echo "[$(date +%H:%M:%S)] $*"; }
+
+# the supervisor view runs from the start and follows whichever run is in progress
+python -m controller view --db state --host 0.0.0.0 --port 8800 &
+say "== supervisor view: http://localhost:8800 (refreshes by itself; follows the run in progress)"
 
 say "== unit tests"
 python -m pytest -q -p no:cacheprovider tests || exit 1
@@ -17,5 +21,5 @@ for s in $SCENARIOS; do
   last="$name"; port=$((port + 1))
 done
 
-echo; say "== all done. Supervisor view of $last: http://localhost:8800  (Ctrl+C to stop)"
-exec python -m controller view --db "state/$last.db" --host 0.0.0.0 --port 8800
+echo; say "== all done. Supervisor view (showing $last): http://localhost:8800  (Ctrl+C to stop)"
+wait
