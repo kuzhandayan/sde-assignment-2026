@@ -3,6 +3,7 @@
 # (simulator + controller + grade). Edit any .py file in controller/ and the run restarts with the new code.
 # SCENARIOS overrides the list of scenarios.
 set -uo pipefail
+set -m                      # job control: each background run is its own process group, so it can be stopped whole
 cd "$(dirname "$0")/.."
 SCENARIOS="${SCENARIOS:-public_01_dev public_02_incidents}"
 say() { echo "[$(date +%H:%M:%S)] $*"; }
@@ -21,10 +22,11 @@ run_all() {
   echo; say "== all done. View: http://localhost:8800 · edit code in controller/ to re-run · Ctrl+C to stop"
 }
 
-stop_run() {
-  kill "$RUN" 2>/dev/null
-  pkill -f "run_scenario.sh"; pkill -f "sim serve"; pkill -f "sim baseline"; pkill -f "controller run"; pkill -f pytest
-  wait "$RUN" 2>/dev/null; sleep 1
+port_free() { python -c "import socket,sys; s=socket.socket(); sys.exit(s.connect_ex(('127.0.0.1', $1)) == 0)"; }
+
+stop_run() {                # stop tests, simulator and controller of the current run (one process group)
+  kill -TERM -- -"$RUN" 2>/dev/null; sleep 1; kill -KILL -- -"$RUN" 2>/dev/null; wait "$RUN" 2>/dev/null
+  for p in 8701 8702 8703 8704; do for i in $(seq 1 20); do port_free $p && break; sleep 0.5; done; done
 }
 
 python -m controller view --db state --host 0.0.0.0 --port 8800 &
