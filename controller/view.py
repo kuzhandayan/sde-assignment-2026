@@ -18,7 +18,8 @@ def _db(path):
 def snapshot(path: str, tenant: str | None = None) -> dict:
     db = _db(path)
     now = db.execute("SELECT COALESCE(MAX(minute),0) FROM metrics").fetchone()[0]
-    today = now // 1440
+    # at exactly midnight (e.g. the run just ended) "today" has no calls yet: show the last full day
+    today = now // 1440 - 1 if now % 1440 == 0 and now > 0 else now // 1440
     out = {"now": label(now), "tenants": {}}
     for w in db.execute("SELECT workflow_id, tenant_id, body FROM workflows ORDER BY workflow_id"):
         if tenant and w["tenant_id"] != tenant:
@@ -53,18 +54,25 @@ def snapshot(path: str, tenant: str | None = None) -> dict:
                             "dims": b["changed_dims"], "summary": s[0] if s else
                             ("supervisor edit" if b["actor"] == "supervisor" else None)})
         dids = {r["did"]: r["status"] for r in db.execute("SELECT did, status FROM dids WHERE workflow_id=?", (wf,))}
-        inc = [dict(r) for r in db.execute("SELECT incident_id, kind, status, opened_minute FROM incidents WHERE "
+        inc = [dict(r) for r in db.execute("SELECT incident_id, kind, status, opened_minute, closed_minute FROM incidents WHERE "
                                            "workflow_id=? ORDER BY opened_minute DESC LIMIT 3", (wf,))]
         cohorts = [dict(r) for r in db.execute("SELECT cohort_id, purpose, reason FROM cohorts WHERE workflow_id=? "
                                                "AND status='active' ORDER BY purpose DESC, cohort_id", (wf,))]
-        frozen = [dict(r) for r in db.execute("SELECT dim, until_minute, reason FROM frozen_dims WHERE workflow_id=?",
+        # supervisor edits still on hold: not superseded by a later approved change on the same dim
+        approved = [(r[0], json.loads(r[1])) for r in db.execute(
+            "SELECT minute, body FROM world_events WHERE workflow_id=? AND type='config_changed' AND "
+            "json_extract(body,'$.actor')='controller_approved'", (wf,))]
+        frozen = [dict(r) for r in db.execute("SELECT dim, until_minute, reason, until_minute - 1440 AS edited "
+                                              "FROM frozen_dims WHERE workflow_id=?",
                                               (wf,))]
-        k_today = _k(db, wf, today * 1440, now)
+        frozen = [f for f in frozen if not any(m >= f["edited"] and f["dim"] in b.get("changed_dims", [])
+                                               for m, b in approved)]
+        k_today = _k(db, wf, today * 1440, (today + 1) * 1440)
         k_base = _k(db, wf, -14 * 1440, 0)
         out["tenants"].setdefault(w["tenant_id"], {})[wf] = {
             "use_case": info.get("use_case"), "objective": info["objective"],
             "config_version": cfg["version"] if cfg else None, "prompt": live.get("prompt_version"),
-            "kpis_today": k_today, "kpis_before_controller": k_base,
+            "day": f"D{today}", "kpis_today": k_today, "kpis_before_controller": k_base,
             "being_tested": tests, "wanted_from_you": pending, "changed_today": changed, "caller_ids": dids,
             "incidents": inc, "cohorts": cohorts, "supervisor_edits_respected": frozen}
     out["alerts"] = [dict(r) for r in db.execute("SELECT minute, severity, workflow_id, summary, action FROM alerts "
@@ -133,7 +141,7 @@ def render_tenant(snap: dict, tenant: str) -> str:
                  f"<p>Primary KPI <b>{_h(d['objective']['primary'])}</b>, guardrail {_h(d['objective']['guardrail'])}"
                  f" · config v{_h(d['config_version'])} · prompt {_h(d['prompt'])}</p>"
                  f"<table><tr><th></th><th>pickup</th><th>engagement</th></tr>"
-                 f"<tr><td>today</td><td>{_h(kt['pickup_rate'])}</td><td>{_h(kt['engagement_rate'])}</td></tr>"
+                 f"<tr><td>{_h(d['day'])} (latest day)</td><td>{_h(kt['pickup_rate'])}</td><td>{_h(kt['engagement_rate'])}</td></tr>"
                  f"<tr><td>before the controller (history)</td><td>{_h(kb['pickup_rate'])}</td>"
                  f"<td>{_h(kb['engagement_rate'])}</td></tr></table>")
         P.append("<h3>What we want from you</h3>")
@@ -150,11 +158,11 @@ def render_tenant(snap: dict, tenant: str) -> str:
                      f"{(' — ' + _h(t['winner'])) if t['winner'] else ''}</span></td>"
                      f"<td>{_h(_dist(t['live_allocation']))}</td><td>{_h(t['last_event'])}</td></tr>"
                      for t in d["being_tested"]) + "</table>")
-        P.append("<h3>What changed today</h3>")
+        P.append(f"<h3>What changed on {_h(d['day'])}</h3>")
         P.append("<table><tr><th>when</th><th>version</th><th>by</th><th>what</th></tr>" + "".join(
             f"<tr><td>{_h(c['at'])}</td><td>v{_h(c['version'])}</td><td>{_h(c['actor'])}</td>"
             f"<td>{_h(c['summary'] or ', '.join(c['dims']))}</td></tr>" for c in d["changed_today"]) + "</table>"
-                 if d["changed_today"] else "<p>No changes today.</p>")
+                 if d["changed_today"] else f"<p>No changes on {_h(d['day'])}.</p>")
         P.append("<h3>Caller IDs</h3><p>" + " ".join(
             f"<span class='pill {'bad' if s == 'bad' else 'ok' if s == 'healthy' else ''}'>{_h(k)}: {_h(s)}</span>"
             for k, s in sorted(d["caller_ids"].items())) + "</p>")
@@ -163,7 +171,9 @@ def render_tenant(snap: dict, tenant: str) -> str:
                 f"{_h(f['dim'])} ({_h(f['reason'])})" for f in d["supervisor_edits_respected"]) + "</p>")
         if d["incidents"]:
             P.append("<p><b>Incidents:</b> " + "; ".join(
-                f"{_h(i['kind'])} {_h(i['status'])} since {_h(label(i['opened_minute']))}" for i in d["incidents"])
+                f"{_h(i['kind'])}: opened {_h(label(i['opened_minute']))}, "
+                + (f"resolved {_h(label(i['closed_minute']))}" if i["closed_minute"] is not None else "still open")
+                for i in d["incidents"])
                      + "</p>")
     P.append("</body></html>")
     return "".join(P)

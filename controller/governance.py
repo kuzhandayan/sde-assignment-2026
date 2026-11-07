@@ -139,8 +139,7 @@ class Governance:
         ch = self.store.q1("SELECT channel FROM proposals WHERE proposal_id=?", (pid,))
         if ch == "approval":
             for d in dims:
-                self.store.x("DELETE FROM frozen_dims WHERE workflow_id=? AND dim=? AND until_minute<=?",
-                             (wf, d, self.ctx.now))
+                self.store.x("DELETE FROM frozen_dims WHERE workflow_id=? AND dim=?", (wf, d))
         self.ctx.refresh_config(wf)
         self.store.decide(self.ctx.now, wf, "proposal.applied", f"applied as config v{version} (dims {dims})",
                           {"version": version}, pid)
