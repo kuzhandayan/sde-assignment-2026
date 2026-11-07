@@ -10,14 +10,17 @@ You only need **Docker**. Docker brings Python and every package, so there's no 
 
 ```bash
 # run a whole scenario: simulator + controller (Ctrl+C after "controller-1 exited with code 0")
-SCENARIO=public_02_incidents docker compose up --build sim controller
+SCENARIO=public_02_incidents docker compose up --build
 docker compose down
 
-# everything else runs in the `dev` container (the repo mounted into the controller image)
+# everything else runs in the `dev` container (same image, project folder mounted)
 docker compose run --rm dev                                       # unit tests
 docker compose run --rm dev scripts/run_scenario.sh scenarios/public_02_incidents.yaml public_02 8702
                                                                   # sim + controller + grade, live progress
 ```
+
+Your own runs write to `runs/`, `state/` and `logs/` (all git-ignored). `reports/` holds the committed evidence
+and is never overwritten by these commands.
 
 The assignment contract is `./run.sh <SIM_URL>`. It runs the controller in Docker when Docker is available and
 falls back to local Python 3.10+ (`pip install -r requirements.txt`) on a machine without Docker.
@@ -45,8 +48,8 @@ different world. Reports regenerated on another machine can differ in detail fro
 docker compose run --rm dev python -m controller why --db state/public_02.db --workflow ks_cancel --at "D3 16:30"
 # what a customer heard on each call, and why that variant was live (IRDAI question)
 docker compose run --rm dev python -m controller heard --db state/public_02.db --person ks_cancel:p0001234
-# supervisor view of the last `docker compose up` run: one screen per tenant + loop health JSON
-SCENARIO=public_02_incidents docker compose --profile view up view   # http://127.0.0.1:8800/tenant/kestrel_finance
+# supervisor view: one screen per tenant + loop health JSON   -> http://127.0.0.1:8800/tenant/kestrel_finance
+docker compose run --rm --service-ports dev python -m controller view --db state/public_02.db --host 0.0.0.0
 ```
 
 Everything can also be queried directly. The `decisions` table is the plain-language audit log:
@@ -127,7 +130,6 @@ docker compose run --rm dev                                        # 13 controll
 docker compose run --rm dev python scripts/crash_test.py --kills 4 # kill/restart test against a live simulator (≈2 min)
 docker compose run --rm dev python scripts/edge_cases.py           # 9 end-to-end edge cases (≈3 min)
 docker compose run --rm dev python scripts/eval_seeds.py --seeds 3 # robustness across random seeds (≈6 min)
-scripts/e2e_from_scratch.sh        # CI-style: fresh clone + fresh venv + everything + Docker build (Linux, ≈20 min)
 ```
 
 ## 6. Extend it

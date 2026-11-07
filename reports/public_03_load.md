@@ -2,7 +2,7 @@
 
 Measured on the development box: **2 vCPU / 8 GB** (the grading box has 4 vCPU). The simulator and the
 controller ran on the same machine, so every wall-clock number below includes the simulator generating the
-world. Raw grade output: [`public_03_grade.md`](public_03_grade.md). Supervisor snapshot: [`supervisor_public_03.md`](supervisor_public_03.md).
+world. Raw grade output: [`public_03_grade.md`](public_03_grade.md).
 
 ## Throughput and lag
 

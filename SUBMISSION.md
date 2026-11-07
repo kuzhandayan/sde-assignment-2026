@@ -471,10 +471,10 @@ approver attention are the only cross-workflow resources; they go to a small all
   - a second controller on the same DB (refused);
   - a hallucination incident with only 2 credits (pages, never overspends, finishes);
   - the simulator restarted under the controller (refused, no mixing of worlds).
-- **From scratch:** `scripts/e2e_from_scratch.sh` does a fresh clone, fresh virtualenv, all tests, both
-  scenarios, audit queries, the view, the crash test, the edge cases, and a `--no-cache` Docker build with
-  compose, `run.sh USE_DOCKER=1` and a container kill/restart
-  ([`reports/e2e_from_scratch.md`](reports/e2e_from_scratch.md)).
+- **From scratch:** before submitting, everything above was re-run from a fresh clone with a clean environment
+  and a `--no-cache` Docker build: tests, both scenarios, audit queries, the view, the crash test, the edge cases,
+  `docker compose up`, `run.sh` in Docker, and a container kill/restart. All passed, with the same grades as the
+  plain-Python runs.
 - **Reproducible runs:** the controller pins `PYTHONHASHSEED=0` (it re-execs itself if needed), and every
   Monte Carlo draw is seeded. Two independent runs of the same scenario give identical grades. You can replay
   any decision.

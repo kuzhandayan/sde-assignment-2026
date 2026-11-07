@@ -1,35 +1,24 @@
-# Run a scenario:   SCENARIO=public_02_incidents docker compose up --build sim controller  (Ctrl+C after "exited with code 0")
-# Supervisor view:  docker compose --profile view up view                                 (http://127.0.0.1:8800)
-# Anything else:    docker compose run --rm dev <command>     e.g. python -m pytest -q tests
-x-build: &build
-  context: .
-  args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}
+# docker compose up --build                  run a scenario: simulator + controller  (SCENARIO=public_02_incidents ...)
+# docker compose run --rm dev <command>      tests, scripts and audit commands, e.g. python -m pytest -q tests
+x-app: &app
+  build: {context: ., args: {BASE_IMAGE: "${BASE_IMAGE:-python:3.12-slim}"}}
+  working_dir: /repo
+  volumes: [".:/repo"]
 
 services:
   sim:
-    build: {<<: *build, dockerfile: Dockerfile.sim}
-    command: ["--scenario", "scenarios/${SCENARIO:-public_01_dev}.yaml", "--run-dir", "/app/runs/mine"]
-    volumes: ["./runs/docker_${SCENARIO:-public_01_dev}:/app/runs"]
-    ports: ["8700:8700"]
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8700/health')"]
-      interval: 5s
-      retries: 60
+    <<: *app
+    entrypoint: [python, -m, sim, serve, --host, 0.0.0.0, --port, "8700", --force,
+                 --scenario, "scenarios/${SCENARIO:-public_01_dev}.yaml", --run-dir, "runs/docker_${SCENARIO:-public_01_dev}"]
+    healthcheck: {test: [CMD, python, -c, "import urllib.request as u; u.urlopen('http://127.0.0.1:8700/health')"], interval: 3s, retries: 60}
   controller:
-    build: *build
-    command: ["run", "--url", "http://sim:8700", "--db", "/app/state/controller.db"]
-    volumes: ["./state/docker_${SCENARIO:-public_01_dev}:/app/state"]
+    <<: *app
+    # every `up` starts a new simulator world, so it gets a new state DB
+    entrypoint: [bash, -c, 'rm -f state/docker.db*; exec python -m controller run --url http://sim:8700 --db state/docker.db']
     depends_on: {sim: {condition: service_healthy}}
-  view:
-    build: *build
-    command: ["view", "--db", "/app/state/controller.db", "--host", "0.0.0.0", "--port", "8800"]
-    volumes: ["./state/docker_${SCENARIO:-public_01_dev}:/app/state:ro"]
+  dev:
+    <<: *app
+    entrypoint: [bash, -c, 'exec "$$@"', --]
+    command: [python, -m, pytest, -q, tests]
     ports: ["8800:8800"]
-    profiles: ["view"]
-  dev:   # the repo mounted into the controller image: tests, scripts and audit commands without a local Python
-    build: *build
-    entrypoint: ["bash", "-c", "exec \"$$@\"", "--"]
-    command: ["python", "-m", "pytest", "-q", "tests"]
-    working_dir: /repo
-    volumes: [".:/repo"]
-    profiles: ["dev"]
+    profiles: [dev]

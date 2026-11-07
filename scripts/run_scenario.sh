@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run one scenario end to end locally: simulator + controller + grade, with live progress.
 #   scripts/run_scenario.sh scenarios/public_01_dev.yaml public_01 [port]
-# Full logs: logs/sim_<name>.log and logs/controller_<name>.log
+# Output (all git-ignored): runs/<name>_grade.md, logs/sim_<name>.log, logs/controller_<name>.log
 set -uo pipefail
 SCEN="$1"; NAME="$2"; PORT="${3:-8700}"
 cd "$(dirname "$0")/.."
-mkdir -p reports state logs
+mkdir -p runs state logs
 say() { echo "[$(date +%H:%M:%S)] $*"; }
 up() { python3 -c "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:$PORT/health', timeout=2)" 2>/dev/null; }
 fail() { say "FAILED: $*"; exit 1; }
@@ -51,8 +51,7 @@ if [ $RC != 0 ]; then
   fail "controller exited with code $RC"
 fi
 say "grading against the baseline..."
-python -m sim grade --run "runs/mine_$NAME" --baseline "runs/base_$NAME" --out "reports/$NAME.md" > /dev/null \
-  || fail "grading"
-python -m controller report --db "state/$NAME.db" --out "reports/supervisor_$NAME.md" > /dev/null 2>&1 || true
-say "done -> reports/$NAME.md"
-sed -n 5,10p "reports/$NAME.md"
+OUT="${REPORT_OUT:-runs/${NAME}_grade.md}"
+python -m sim grade --run "runs/mine_$NAME" --baseline "runs/base_$NAME" --out "$OUT" > /dev/null || fail "grading"
+say "done -> $OUT"
+sed -n 5,10p "$OUT"

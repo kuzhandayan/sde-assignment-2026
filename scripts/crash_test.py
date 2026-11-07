@@ -20,7 +20,7 @@ def main():
     ap.add_argument("--kills", type=int, default=4, help="random SIGKILLs on top of the injected crash points")
     ap.add_argument("--port", type=int, default=8760)
     ap.add_argument("--seed", type=int, default=7)
-    ap.add_argument("--out", default="reports/crash_recovery.md")
+    ap.add_argument("--out", default="runs/crash_recovery.md")
     a = ap.parse_args()
     rnd = random.Random(a.seed)
     run_dir, db = ROOT / "runs" / "crash_test", ROOT / "state" / "crash_test.db"

@@ -69,7 +69,7 @@ def q(db, sql):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="reports/edge_cases.md")
+    ap.add_argument("--out", default="runs/edge_cases.md")
     a = ap.parse_args()
     E.mkdir(parents=True, exist_ok=True)
     short = scenario("short", days=2, history_days=3)
