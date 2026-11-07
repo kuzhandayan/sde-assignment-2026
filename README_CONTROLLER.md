@@ -26,8 +26,10 @@ starts again with the new code (tests, then the scenarios), and the view follows
 It takes about 2 minutes. Press **Ctrl+C** to stop, then run `docker compose down`. To run other scenarios:
 `SCENARIOS="public_03_load" docker compose up`.
 
-Your runs write to `runs/`, `state/` and `logs/` (all git-ignored). `reports/` holds the committed evidence and is
-never overwritten.
+Your runs write to `runs/` and `logs/` (git-ignored). In Docker, the controller's SQLite databases (`state/`)
+live in a Docker volume, because SQLite's shared-memory files are not safe on macOS bind mounts; read them with
+`docker compose run --rm dev ...`, and clear them with `docker compose down -v`. `reports/` holds the committed
+evidence and is never overwritten.
 
 The assignment contract is `./run.sh <SIM_URL>`. It runs the controller in Docker when Docker is available and
 falls back to local Python 3.10+ (`pip install -r requirements.txt`) on a machine without Docker.
