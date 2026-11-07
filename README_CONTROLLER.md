@@ -18,8 +18,10 @@ That one command:
 2. runs **public_01** and **public_02** end to end (simulator + controller + grade against the no-op baseline),
    with live progress and a result table for each;
 3. shows the supervisor view at **http://localhost:8800** from the start. The page follows the run in progress
-   and refreshes itself every 10 seconds, so you can watch the app work day by day. When the code in
-   `controller/` changes, the view server reloads by itself.
+   and refreshes itself every 10 seconds, so you can watch the app work day by day.
+
+**Hot reload:** while it's running, save a change to any `.py` file in `controller/`. The current run stops and
+starts again with the new code (tests, then the scenarios), and the view follows the new run.
 
 It takes about 2 minutes. Press **Ctrl+C** to stop, then run `docker compose down`. To run other scenarios:
 `SCENARIOS="public_03_load" docker compose up`.
