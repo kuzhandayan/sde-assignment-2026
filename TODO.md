@@ -19,7 +19,7 @@ where to find the evidence.
 | A1 | Fill in **Hours actually spent** at the top of `SUBMISSION.md` (be honest — they ask) | 👤 to do |
 | A2 | Read `SUBMISSION.md` fully and rewrite any stakeholder reply (§3) in your own words if you want | 👤 to do |
 | A3 | Push to a **private GitHub repo** and give access to the email on the form (commit history is graded; push as-is, don't squash) | 👤 to do |
-| A4 | Verify Docker once with the real base image: `SCENARIO=public_01_dev docker compose up --build sim controller`. Everything else in the Docker path is already tested with a local base image (Docker Hub was blocked in my environment) | 👤 to do |
+| A4 | Verify Docker once with the real base image (`docker compose up` on the Mac) | ✅ done 8 Nov — built from `python:3.12-slim`, sim healthy, controller ran D0–D7 and exited 0 |
 | A5 | Run everything once on your Mac: `./setup.sh` (needs Python 3.10+; macOS's built-in 3.9 is too old → `brew install python@3.12`) | ✅ done 7 Nov — 19 tests pass, public_01 smoke run +15.2% |
 | A6 | Optional: record a ≤ 5-min walkthrough video (show `why`, the supervisor view, the crash test) | 👤 optional |
 | A7 | Check whether you submitted Round 1 — if not, the email says both rounds are needed | 👤 check |
@@ -111,7 +111,7 @@ where to find the evidence.
 | H1 | Unit tests where they matter | ✅ | `tests/test_controller.py` (13) + simulator tests (6) — all pass |
 | H2 | Docs a new engineer can run/debug/extend from | ✅ | `README_CONTROLLER.md` (run, inspect, runbook, extend) |
 | H3 | Robustness across seeds (not tuned to one run) | ✅ | `scripts/eval_seeds.py`, `reports/seed_robustness.md` |
-| H4 | Docker | ✅ (A4 left) | `--no-cache` build, compose run, `run.sh USE_DOCKER=1`, container kill/restart all pass (`reports/e2e_from_scratch.md`) with a local base image; the `python:3.12-slim` pull is A4 |
+| H4 | Docker | ✅ | `--no-cache` build, compose run, `run.sh USE_DOCKER=1`, container kill/restart pass (`reports/e2e_from_scratch.md`); `docker compose up` with the real `python:3.12-slim` image passes on macOS (A4) |
 | H6 | Edge cases end to end | ✅ | `scripts/edge_cases.py` 9/9 (`reports/edge_cases.md`) |
 | H7 | Full from-scratch verification | ✅ | `scripts/e2e_from_scratch.sh` → `reports/e2e_from_scratch.md` |
 | H8 | One-command setup with live progress | ✅ | `./setup.sh` (finds Python 3.10+, installs, tests, smoke run → `reports/smoke_public_01.md`); every script prints timestamped progress and fails fast with the log tail |

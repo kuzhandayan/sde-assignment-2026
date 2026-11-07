@@ -42,7 +42,8 @@ Safety rails at start-up:
 Docker for local development (simulator + controller + view):
 
 ```bash
-SCENARIO=public_02_incidents docker compose up --build sim controller
+SCENARIO=public_02_incidents docker compose up --build sim controller   # Ctrl+C when the controller exits 0
+docker compose down
 SCENARIO=public_02_incidents docker compose --profile view up view      # http://127.0.0.1:8800
 ```
 

@@ -649,11 +649,10 @@ Every one of the 6 runs improved conclusion rate, pickup and engagement.
    history baseline would be wrong. No separate safety signal is used.
 8. **No per-approver fatigue across workflows.** The same human approving several Northwind workflows sees the
    sum of our requests.
-9. **Docker was verified with a locally built base image,** because Docker Hub was blocked in my build
-   environment. The full Docker path (build `--no-cache`, compose, `run.sh USE_DOCKER=1`, container
-   kill/restart) passes with `BASE_IMAGE=<local python image>`. The default `python:3.12-slim` pull itself
-   still needs one check on a machine with Docker Hub access. Plain `./run.sh` (no Docker) is the default and
-   fully tested.
+9. **The Docker build needs network access to Docker Hub and PyPI.** It was verified both with the real
+   `python:3.12-slim` image (`docker compose up` on macOS: build, healthy simulator, controller ran D0–D7 and
+   exited 0) and offline with a local base image (`BASE_IMAGE=...`). There's no pinned image digest or lock
+   file, so a future `python:3.12-slim` or package release could change behaviour. Pin both before production.
 10. **The supervisor view is read-only.** Approving still happens in the client's system.
 
 ## 14. If this went to production at Formi next month
