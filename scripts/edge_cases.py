@@ -89,9 +89,11 @@ def main():
     short = scenario("short", days=2, history_days=3)
     res = []
 
+    print(f"[{time.strftime('%H:%M:%S')}] running 9 edge cases (about 2 minutes); one line per case", flush=True)
+
     def record(name, ok, detail):
         res.append((name, ok, detail))
-        print(f"{'PASS' if ok else 'FAIL'}  {name}: {detail}", flush=True)
+        print(f"[{time.strftime('%H:%M:%S')}] {'PASS' if ok else 'FAIL'}  {name}: {detail}", flush=True)
 
     # 1. controller first, simulator later
     db = fresh_db("c1")

@@ -43,6 +43,14 @@ def main():
                             str(run_dir), "--force", "--port", str(a.port)], cwd=ROOT,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     log = []
+
+    class _Log(list):
+        def append(self, x):
+            print(f"[{time.strftime('%H:%M:%S')}] {x}", flush=True)
+            super().append(x)
+    log = _Log()
+    print(f"[{time.strftime('%H:%M:%S')}] crash test: simulator starting on port {a.port}; each line below is one "
+          f"controller start (kills are deliberate)", flush=True)
     url = f"http://127.0.0.1:{a.port}"
     env = {**os.environ, "CRASH_POINTS": "after_approval_post,after_apply_post,after_auto_put,mid_chunk",
            "CRASH_MARKER": str(marker)}
@@ -75,6 +83,7 @@ def main():
             if p.returncode != 0:
                 print(out[-3000:])
             break
+        print(f"[{time.strftime('%H:%M:%S')}] verifying exactly-once, approvals and aggregates...", flush=True)
         checks = verify(url, run_dir, db)
     finally:
         sim.terminate()

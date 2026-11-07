@@ -34,8 +34,7 @@ echo "[3/4] Unit tests"
 python -m pytest -q tests
 
 echo "[4/4] public_01 end to end (about 1 minute)"
-scripts/run_scenario.sh scenarios/public_01_dev.yaml public_01 8701 >/dev/null
-sed -n 5,10p reports/public_01.md
+scripts/run_scenario.sh scenarios/public_01_dev.yaml public_01 8701 || exit 1
 cat <<'MSG'
 
 Ready. Activate the environment with:   source .venv/bin/activate
