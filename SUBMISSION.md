@@ -1,6 +1,6 @@
 # Outcome-First Agent Loop — Submission
 
-**Name:** Kuzhandayan K V · **Date:** 2026-11-08 · **Hours actually spent (be honest):** _fill in before submitting_ ·
+**Name:** Kuzhandayan K V · **Date:** 2026-11-07 · **Hours actually spent (be honest):** _fill in before submitting_ ·
 **Language / storage:** Python 3.11+ (only the packages already in `requirements.txt`) / SQLite (WAL), one file
 
 > How to run, debug and extend: [`README_CONTROLLER.md`](README_CONTROLLER.md). Requirement-by-requirement
@@ -10,26 +10,11 @@
 
 ## 0. TL;DR
 
-- **What it is.** A single-process controller. Every 30 sim-minutes it does five things:
-  1. Ingests events exactly once into SQLite.
-  2. Learns call-time cells and caller-ID health from history.
-  3. Runs welcome × voice experiments with harm stops, Holm-gated promotion and decay rollback.
-  4. Handles hallucination incidents by rolling back to a known-good prompt, validated and approved.
-  5. Sends one batched, evidence-carrying approval request per workflow per day, and auto-applies only what
-     the policy permits.
-- **public_01:** +15.2% conclusion rate, +10.6% pickup, +2.9% engagement. 33 changes: 17 beneficial,
-  13 neutral, 3 harmful. Mean over 3 extra seeds: +16.5%.
-- **public_02:** +28.7% conclusion rate. The bad prompt was rolled back 5h after the supervisor shipped it.
-  Hallucinated calls fell 406 → 188. The caller ID that got flagged had already been moved off for load
-  before the flag. 0 apply conflicts, 0 lapses. Mean over 3 extra seeds: +27.0%.
-- **public_03 (load):** +24.7% conclusions, 1 harmful change out of 100. 22–49 s of wall time per simulated
-  day (target: under 10 min). 145–160k events/s. p99 decision lag 1.8 s. Kill/restart test passes on
-  9 starts; 9/9 edge cases pass; runs are reproducible.
-- **Deliberately not built:**
-  - Per-person call time: people have about 5 dials of history each.
-  - Prompt A/B tests: one prompt per workflow means no clean split.
-  - Cross-tenant fair allocation of credits and approver attention (C15).
-  - Engagement experiments on supervisor-edited dims.
+1. One process: exactly-once ingest → call-time cohorts + caller-ID health from history → welcome × voice experiments (harm stop, Holm-gated promotion, decay rollback) → hallucination rollback (validated, approved) → one batched request per workflow per day; auto-apply only within policy.
+2. **public_01:** +15.2% conclusion rate (+10.6% pickup, +2.9% engagement), 3 harmful of 33 changes; mean over 3 more seeds +16.5%.
+3. **public_02:** +28.7% conclusions; bad prompt rolled back 5h after it shipped (hallucinated calls 406 → 188); 0 conflicts, 0 lapses; seeds mean +27.0%.
+4. **public_03:** +24.7%, 1 harmful of 100; ≤ 49 s wall per sim day (target 10 min), 145–160k events/s; crash test 9 restarts PASS, 9/9 edge cases PASS, reproducible runs.
+5. **Not built, on purpose:** per-person call time (≈5 dials of history per person), prompt A/B tests, cross-tenant credit/attention allocation (C15).
 
 ## 1. Assumptions
 
