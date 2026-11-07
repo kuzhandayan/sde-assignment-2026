@@ -7,6 +7,8 @@
   python -m controller report --db state/controller.db --out reports/supervisor_public_01.md
 """
 import argparse
+import os
+import sys
 
 
 def main(argv=None):
@@ -34,6 +36,11 @@ def main(argv=None):
     rp.add_argument("--out")
     a = ap.parse_args(argv)
     if a.cmd == "run":
+        # Reproducible runs: string hashing (set/dict iteration order) must not vary between processes,
+        # otherwise tiny rounding differences in allocations change later decisions.
+        if os.environ.get("PYTHONHASHSEED") != "0":
+            os.environ["PYTHONHASHSEED"] = "0"
+            os.execv(sys.executable, [sys.executable, "-m", "controller", *(argv or sys.argv[1:])])
         from .loop import main_run
         main_run(a.url, a.db, a.verbose)
     elif a.cmd == "why":
