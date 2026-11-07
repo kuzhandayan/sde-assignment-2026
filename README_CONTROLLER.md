@@ -6,6 +6,9 @@ is [`TODO.md`](TODO.md).
 
 ## 1. Run it
 
+**Quickest start (macOS or Linux):** `./setup.sh`. It creates `.venv`, installs the requirements, runs the
+tests and runs public_01 end to end, then prints what to try next.
+
 ```bash
 pip install -r requirements.txt          # numpy, pyyaml, fastapi, uvicorn, httpx, pytest -- nothing else
 
